@@ -18,6 +18,9 @@ use GameQuery\Protocol\Minecraft;
 use GameQuery\Protocol\Bedrock;
 use GameQuery\Protocol\FiveM;
 use GameQuery\Protocol\Palworld;
+use GameQuery\Protocol\Quake3;
+use GameQuery\Protocol\GameSpy3;
+use GameQuery\Protocol\Unreal2;
 use GameQuery\Protocol\Source;
 use GameQuery\Server;
 
@@ -190,6 +193,63 @@ check('fivem player count from players.json', $fivemParsed['players'] === 3);
 check('fivem player names parsed', $fivemParsed['players_list'] === ['Alice', 'Bob', 'Carol']);
 $fivemNext = $fivem->nextStep($fivemServer, [['tag' => 'info', 'request' => '', 'response' => $infoResp]]);
 check('fivem next step requests players.json', $fivemNext !== null && str_contains($fivemNext['packet'], 'GET /players.json'));
+
+echo "\nQuake3 (id Tech 3 getstatus) parsing\n";
+$q3 = new Quake3();
+$q3Server = Server::fromAddress('quake3', '127.0.0.1:27960');
+$q3Response = "\xff\xff\xff\xffstatusResponse\n"
+    . "\\sv_hostname\\My Q3 Server\\mapname\\q3dm17\\sv_maxclients\\16\\gamename\\baseq3\\g_gametype\\0\n"
+    . "10 30 \"Player One\"\n"
+    . "5 45 \"Player Two\"\n";
+$q3Parsed = $q3->parse($q3Server, [['tag' => 'status', 'request' => '', 'response' => $q3Response]]);
+check('quake3 hostname parsed', $q3Parsed['name'] === 'My Q3 Server');
+check('quake3 map parsed', $q3Parsed['map'] === 'q3dm17');
+check('quake3 max players parsed', $q3Parsed['max_players'] === 16);
+check('quake3 player count parsed', $q3Parsed['players'] === 2);
+check('quake3 player names parsed', $q3Parsed['players_list'] === ['Player One', 'Player Two']);
+check('quake3 gamename exposed', ($q3Parsed['game'] ?? null) === 'baseq3');
+check('quake3 is single-shot', $q3->nextStep($q3Server, []) === null);
+
+echo "\nGameSpy3 challenge handling + key/value parsing\n";
+$gs3 = new GameSpy3();
+$gs3Server = Server::fromAddress('gamespy3', '127.0.0.1:29900');
+// Challenge reply drives a signed-int challenge into a big-endian info request.
+$challengeReply = "\x09\x04\x05\x06\x07" . "1234567\x00";
+$gs3Next = $gs3->nextStep($gs3Server, [['tag' => 'challenge', 'request' => '', 'response' => $challengeReply]]);
+check('gamespy3 sends info request after challenge', $gs3Next !== null && $gs3Next['tag'] === 'info');
+check('gamespy3 encodes challenge big-endian', $gs3Next !== null && str_contains($gs3Next['packet'], pack('N', 1234567)));
+$gs3Info = "\x00\x04\x05\x06\x07splitnum\x00\x00"
+    . "hostname\x00My BF2 Server\x00mapname\x00Strike\x00maxplayers\x0064\x00numplayers\x002\x00gametype\x00gpm_cq\x00"
+    . "\x00\x01player_\x00\x00Alice\x00Bob\x00\x00";
+$gs3Parsed = $gs3->parse($gs3Server, [
+    ['tag' => 'challenge', 'request' => '', 'response' => $challengeReply],
+    ['tag' => 'info', 'request' => '', 'response' => $gs3Info],
+]);
+check('gamespy3 hostname parsed', $gs3Parsed['name'] === 'My BF2 Server');
+check('gamespy3 map parsed', $gs3Parsed['map'] === 'Strike');
+check('gamespy3 max players parsed', $gs3Parsed['max_players'] === 64);
+check('gamespy3 player names parsed', $gs3Parsed['players_list'] === ['Alice', 'Bob']);
+
+echo "\nUnreal2 length-prefixed binary parsing\n";
+$u2 = new Unreal2();
+$u2Server = Server::fromAddress('unreal2', '127.0.0.1:7787');
+$ustr = static fn (string $s): string => chr(strlen($s) + 1) . $s . "\x00";
+$u2Details = "\x80\x00\x00\x00\x00"
+    . pack('V', 1)          // server id
+    . $ustr('1.2.3.4')      // ip
+    . pack('V', 7777)       // game port
+    . pack('V', 7787)       // query port
+    . $ustr('My UT2004 Server')
+    . $ustr('DM-Rankin')
+    . $ustr('DeathMatch')
+    . pack('V', 5)          // num players
+    . pack('V', 16);        // max players
+$u2Parsed = $u2->parse($u2Server, [['tag' => 'details', 'request' => '', 'response' => $u2Details]]);
+check('unreal2 name parsed', $u2Parsed['name'] === 'My UT2004 Server');
+check('unreal2 map parsed', $u2Parsed['map'] === 'DM-Rankin');
+check('unreal2 gametype parsed', $u2Parsed['gametype'] === 'DeathMatch');
+check('unreal2 player count parsed', $u2Parsed['players'] === 5);
+check('unreal2 max players parsed', $u2Parsed['max_players'] === 16);
 
 echo "\n" . ($failures === 0 ? "All {$passed} checks passed.\n" : "{$failures} of " . ($passed + $failures) . " checks FAILED.\n");
 exit($failures === 0 ? 0 : 1);

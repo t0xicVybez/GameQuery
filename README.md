@@ -48,6 +48,15 @@ port or adaptation of any existing library's code.
     Usage below).
     - `palworld` — server info + connected player list
     - `palworld-info` — server info only (no auth-protected players call)
+  - **id Tech 3 / Quake 3** (`quake3`) — the `getstatus` protocol behind
+    Quake 3, all of Call of Duty 1/2/4/UO/WaW, OpenArena, Xonotic, Warsow,
+    Urban Terror, Wolfenstein: Enemy Territory, Jedi Academy, and more.
+  - **GameSpy 3** (`gamespy3`) — Battlefield 2, Crysis, Unreal Tournament 3,
+    Quake 4, and other mid-2000s titles. Challenge/response over UDP.
+  - **Unreal Engine 2** (`unreal2`) — Unreal Tournament 2003/2004, Killing
+    Floor, Red Orchestra, America's Army 2, and other UE2 games.
+    - `unreal2` — server info + player list
+    - `unreal2-info` — server info only
 - **Works standalone or via Composer.** `autoload.php` for a plain FTP
   drop-in on a shared host; `composer.json` if you'd rather pull it in as
   a package.
