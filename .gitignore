@@ -2,3 +2,6 @@
 composer.lock
 .DS_Store
 *.log
+node/node_modules/
+node/dist/
+node/package-lock.json
