@@ -68,6 +68,8 @@ port or adaptation of any existing library's code.
     Wars, and Prey.
   - **All-Seeing Eye** (`ase`) — Multi Theft Auto (MTA:SA) and other titles
     that adopted the ASE browser format.
+  - **Mumble** (`mumble`) — Murmur / Mumble voice servers (UDP ping on the
+    voice port, default 64738): version, user count, and max users.
 - **Works standalone or via Composer.** `autoload.php` for a plain FTP
   drop-in on a shared host; `composer.json` if you'd rather pull it in as
   a package.

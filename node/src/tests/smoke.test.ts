@@ -16,6 +16,7 @@ import { GameSpy3 } from '../protocol/GameSpy3.js';
 import { Unreal2 } from '../protocol/Unreal2.js';
 import { Doom3 } from '../protocol/Doom3.js';
 import { Ase } from '../protocol/Ase.js';
+import { Mumble } from '../protocol/Mumble.js';
 import type { HistoryEntry } from '../types.js';
 
 let passed = 0;
@@ -142,6 +143,19 @@ const ase = Buffer.concat([
 const asep = new Ase().parse(srv('ase', 'x:22126'), hist('info', ase));
 check('ase name/map/max parsed', asep.name === 'My MTA' && asep.map === 'San Andreas' && asep.max_players === 50);
 check('ase players parsed', asep.players === 2 && JSON.stringify(asep.players_list) === JSON.stringify(['Alice', 'Bob']));
+
+console.log('\nMumble');
+const mumble = Buffer.alloc(24);
+mumble.writeUInt8(0, 0);
+mumble.writeUInt8(1, 1); mumble.writeUInt8(4, 2); mumble.writeUInt8(31, 3); // version 1.4.31
+// bytes 4..11 ident echo left as zero
+mumble.writeUInt32BE(42, 12);    // users
+mumble.writeUInt32BE(100, 16);   // max users
+mumble.writeUInt32BE(72000, 20); // bandwidth
+const mp = new Mumble().parse(srv('mumble', 'x:64738'), hist('ping', mumble));
+check('mumble version/users/max parsed', mp.version === '1.4.31' && mp.players === 42 && mp.max_players === 100);
+check('mumble bandwidth parsed', mp.bandwidth === 72000);
+check('mumble short packet rejected', Object.keys(new Mumble().parse(srv('mumble', 'x:64738'), hist('ping', Buffer.from([0, 1])))).length === 0);
 
 console.log('\n' + (failures === 0 ? `All ${passed} checks passed.` : `${failures} of ${passed + failures} checks FAILED.`));
 process.exit(failures === 0 ? 0 : 1);

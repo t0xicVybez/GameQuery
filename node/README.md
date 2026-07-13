@@ -50,7 +50,7 @@ usage error.
 
 `source` (+ `-players`/`-full`), `minecraft`, `bedrock`, `fivem`, `palworld`,
 `quake2`, `quake3`, `gamespy1`, `gamespy2`, `gamespy3`, `unreal2`, `doom3`,
-`ase`. See the [main README](../README.md) for the games each covers.
+`ase`, `mumble`. See the [main README](../README.md) for the games each covers.
 
 ## Develop
 

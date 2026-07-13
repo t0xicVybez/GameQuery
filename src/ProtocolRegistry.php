@@ -8,6 +8,7 @@ use GameQuery\Exception\GameQueryException;
 use GameQuery\Protocol\Ase;
 use GameQuery\Protocol\Bedrock;
 use GameQuery\Protocol\Doom3;
+use GameQuery\Protocol\Mumble;
 use GameQuery\Protocol\FiveM;
 use GameQuery\Protocol\GameSpy1;
 use GameQuery\Protocol\GameSpy2;
@@ -56,6 +57,7 @@ final class ProtocolRegistry
             'unreal2-info' => static fn () => new Unreal2(includePlayers: false),
             Doom3::name() => static fn () => new Doom3(),
             Ase::name() => static fn () => new Ase(),
+            Mumble::name() => static fn () => new Mumble(),
         ];
     }
 

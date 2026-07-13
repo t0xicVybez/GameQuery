@@ -60,6 +60,11 @@ export class ByteReader {
     return this.read(4).readUInt32LE(0);
   }
 
+  /** Big-endian unsigned 32-bit (RakNet, Mumble, and other network-order protocols). */
+  readUInt32BE(): number {
+    return this.read(4).readUInt32BE(0);
+  }
+
   /** Unsigned 64-bit little-endian (Steam IDs etc.) as a decimal string, to stay JSON-safe. */
   readUInt64(): string {
     return this.read(8).readBigUInt64LE(0).toString();

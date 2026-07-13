@@ -100,6 +100,12 @@ final class ByteReader
         return unpack('V', $this->read(4))[1];
     }
 
+    /** Big-endian unsigned 32-bit (RakNet, Mumble, and other network-order protocols). */
+    public function readUInt32BE(): int
+    {
+        return unpack('N', $this->read(4))[1];
+    }
+
     public function readUInt64(): int
     {
         // Steam IDs etc. PHP ints are 64-bit signed on any modern platform,

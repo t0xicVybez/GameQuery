@@ -26,6 +26,7 @@ use GameQuery\Protocol\GameSpy3;
 use GameQuery\Protocol\Unreal2;
 use GameQuery\Protocol\Doom3;
 use GameQuery\Protocol\Ase;
+use GameQuery\Protocol\Mumble;
 use GameQuery\Protocol\Source;
 use GameQuery\Server;
 
@@ -331,6 +332,21 @@ check('ase max players parsed', $aseParsed['max_players'] === 50);
 check('ase player count parsed', $aseParsed['players'] === 2);
 check('ase player names parsed', $aseParsed['players_list'] === ['Alice', 'Bob']);
 check('ase game exposed', ($aseParsed['game'] ?? null) === 'MTA:SA');
+
+echo "\nMumble ping parsing\n";
+$mumble = new Mumble();
+$mumbleServer = Server::fromAddress('mumble', '127.0.0.1:64738');
+$mumbleResponse = "\x00" . chr(1) . chr(4) . chr(287 & 0xff) // version 1.4.31
+    . pack('J', 0)                                            // ident echo (8 bytes)
+    . pack('N', 42)                                           // users
+    . pack('N', 100)                                          // max users
+    . pack('N', 72000);                                       // bandwidth
+$mumbleParsed = $mumble->parse($mumbleServer, [['tag' => 'ping', 'request' => '', 'response' => $mumbleResponse]]);
+check('mumble version parsed', $mumbleParsed['version'] === '1.4.31');
+check('mumble users parsed', $mumbleParsed['players'] === 42);
+check('mumble max users parsed', $mumbleParsed['max_players'] === 100);
+check('mumble bandwidth parsed', $mumbleParsed['bandwidth'] === 72000);
+check('mumble short packet rejected', $mumble->parse($mumbleServer, [['tag' => 'ping', 'request' => '', 'response' => "\x00\x01"]]) === []);
 
 echo "\n" . ($failures === 0 ? "All {$passed} checks passed.\n" : "{$failures} of " . ($passed + $failures) . " checks FAILED.\n");
 exit($failures === 0 ? 0 : 1);
