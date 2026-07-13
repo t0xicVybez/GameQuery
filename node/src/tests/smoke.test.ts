@@ -20,6 +20,7 @@ import { Mumble } from '../protocol/Mumble.js';
 import { Frostbite } from '../protocol/Frostbite.js';
 import { AssettoCorsa } from '../protocol/AssettoCorsa.js';
 import { TeamSpeak3 } from '../protocol/TeamSpeak3.js';
+import { Terraria } from '../protocol/Terraria.js';
 import type { HistoryEntry } from '../types.js';
 
 let passed = 0;
@@ -223,6 +224,36 @@ check(
   'teamspeak3 request selects voice port',
   ts.initialStep(Server.fromAddress('teamspeak3', 'x:10011', null, { voicePort: 9988 })).packet.toString('latin1').includes('use port=9988'),
 );
+
+console.log('\nTerraria (TShock REST)');
+const trJson = JSON.stringify({
+  status: '200',
+  name: 'My Terraria World',
+  port: 7777,
+  playercount: 2,
+  maxplayers: 8,
+  world: 'Hallow',
+  serverversion: '1.4.4.9',
+  players: [{ nickname: 'Alice' }, { nickname: 'Bob' }],
+});
+const trResponse = Buffer.from(
+  `HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: ${Buffer.byteLength(trJson)}\r\n\r\n${trJson}`,
+  'latin1',
+);
+const tr = new Terraria();
+const trServer = Server.fromAddress('terraria', 'x:7878', null, { token: 'secrettoken' });
+const trp = tr.parse(trServer, hist('status', trResponse));
+check('terraria name/world/version parsed', trp.name === 'My Terraria World' && trp.map === 'Hallow' && trp.version === '1.4.4.9');
+check('terraria players/max parsed', trp.players === 2 && trp.max_players === 8);
+check('terraria player names parsed', JSON.stringify(trp.players_list) === JSON.stringify(['Alice', 'Bob']));
+check('terraria request carries token', tr.initialStep(trServer).packet.toString('latin1').includes('token=secrettoken'));
+let trThrew = false;
+try {
+  tr.initialStep(Server.fromAddress('terraria', 'x:7878'));
+} catch {
+  trThrew = true;
+}
+check('terraria missing token rejected', trThrew === true);
 
 console.log('\n' + (failures === 0 ? `All ${passed} checks passed.` : `${failures} of ${passed + failures} checks FAILED.`));
 process.exit(failures === 0 ? 0 : 1);

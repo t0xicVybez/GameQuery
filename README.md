@@ -77,6 +77,8 @@ port or adaptation of any existing library's code.
   - **TeamSpeak 3** (`teamspeak3`) — TS3 / TeaSpeak voice servers via the
     ServerQuery interface (connect to the query port, default 10011; pass the
     voice port as `options['voicePort']`).
+  - **Terraria** (`terraria`) — TShock-modded servers via their REST API
+    (pass the REST port, default 7878, and a token as `options['token']`).
 - **Works standalone or via Composer.** `autoload.php` for a plain FTP
   drop-in on a shared host; `composer.json` if you'd rather pull it in as
   a package.

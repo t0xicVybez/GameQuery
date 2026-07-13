@@ -16,6 +16,7 @@ import { Mumble } from './protocol/Mumble.js';
 import { Frostbite } from './protocol/Frostbite.js';
 import { AssettoCorsa } from './protocol/AssettoCorsa.js';
 import { TeamSpeak3 } from './protocol/TeamSpeak3.js';
+import { Terraria } from './protocol/Terraria.js';
 
 export type ProtocolFactory = () => ProtocolInterface;
 
@@ -49,6 +50,7 @@ export class ProtocolRegistry {
     [Frostbite.protocolName(), () => new Frostbite()],
     [AssettoCorsa.protocolName(), () => new AssettoCorsa()],
     [TeamSpeak3.protocolName(), () => new TeamSpeak3()],
+    [Terraria.protocolName(), () => new Terraria()],
   ]);
 
   register(name: string, factory: ProtocolFactory): void {

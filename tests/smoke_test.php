@@ -30,6 +30,8 @@ use GameQuery\Protocol\Mumble;
 use GameQuery\Protocol\Frostbite;
 use GameQuery\Protocol\AssettoCorsa;
 use GameQuery\Protocol\TeamSpeak3;
+use GameQuery\Protocol\Terraria;
+use GameQuery\Exception\GameQueryException;
 use GameQuery\Protocol\Source;
 use GameQuery\Server;
 
@@ -414,6 +416,36 @@ check('teamspeak3 version parsed', $tsParsed['version'] === '3.13.7');
 check('teamspeak3 completion needs two error lines', $ts->isResponseComplete("TS3\r\nerror id=0 msg=ok\r\n") === false);
 check('teamspeak3 completion after serverinfo', $ts->isResponseComplete($tsResponse) === true);
 check('teamspeak3 request selects voice port', str_contains($ts->initialStep(Server::fromAddress('teamspeak3', 'x:10011', null, ['voicePort' => 9988]))['packet'], 'use port=9988'));
+
+echo "\nTerraria (TShock REST) parsing\n";
+$tr = new Terraria();
+$trServer = Server::fromAddress('terraria', '127.0.0.1:7878', null, ['token' => 'secrettoken']);
+$trJson = json_encode([
+    'status' => '200',
+    'name' => 'My Terraria World',
+    'port' => 7777,
+    'playercount' => 2,
+    'maxplayers' => 8,
+    'world' => 'Hallow',
+    'serverversion' => '1.4.4.9',
+    'players' => [['nickname' => 'Alice'], ['nickname' => 'Bob']],
+]);
+$trResponse = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " . strlen($trJson) . "\r\n\r\n" . $trJson;
+$trParsed = $tr->parse($trServer, [['tag' => 'status', 'request' => '', 'response' => $trResponse]]);
+check('terraria name parsed', $trParsed['name'] === 'My Terraria World');
+check('terraria world/map parsed', $trParsed['map'] === 'Hallow');
+check('terraria players parsed', $trParsed['players'] === 2);
+check('terraria max players parsed', $trParsed['max_players'] === 8);
+check('terraria version parsed', $trParsed['version'] === '1.4.4.9');
+check('terraria player names parsed', $trParsed['players_list'] === ['Alice', 'Bob']);
+check('terraria request carries token', str_contains($tr->initialStep($trServer)['packet'], 'token=secrettoken'));
+$trThrew = false;
+try {
+    $tr->initialStep(Server::fromAddress('terraria', 'x:7878'));
+} catch (GameQueryException) {
+    $trThrew = true;
+}
+check('terraria missing token rejected', $trThrew === true);
 
 echo "\n" . ($failures === 0 ? "All {$passed} checks passed.\n" : "{$failures} of " . ($passed + $failures) . " checks FAILED.\n");
 exit($failures === 0 ? 0 : 1);
