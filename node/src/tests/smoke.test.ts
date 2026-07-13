@@ -14,6 +14,8 @@ import { GameSpy1 } from '../protocol/GameSpy1.js';
 import { GameSpy2 } from '../protocol/GameSpy2.js';
 import { GameSpy3 } from '../protocol/GameSpy3.js';
 import { Unreal2 } from '../protocol/Unreal2.js';
+import { Doom3 } from '../protocol/Doom3.js';
+import { Ase } from '../protocol/Ase.js';
 import type { HistoryEntry } from '../types.js';
 
 let passed = 0;
@@ -119,6 +121,27 @@ const u2 = Buffer.concat([Buffer.from([0x80, 0, 0, 0, 0]), i32(1), ustr('1.2.3.4
 const u2p = new Unreal2().parse(srv('unreal2', 'x:7787'), hist('details', u2));
 check('unreal2 name/map parsed', u2p.name === 'My UT2004' && u2p.map === 'DM-Rankin');
 check('unreal2 counts parsed', u2p.players === 5 && u2p.max_players === 16);
+
+console.log('\nDoom 3 / ASE');
+const d3 = Buffer.concat([
+  Buffer.from('\xff\xffinfoResponse\x00\x00\x00\x00\x00', 'latin1'),
+  Buffer.from('si_name\x00My Doom3\x00si_map\x00d3dm1\x00si_maxPlayers\x008\x00si_version\x00DOOM 1.3.1\x00\x00', 'latin1'),
+  Buffer.from([0x00, 0x0f, 0x00, 0, 0, 0, 0]), Buffer.from('Marine\x00', 'latin1'), Buffer.from([0x20]),
+]);
+const d3p = new Doom3().parse(srv('doom3', 'x:27666'), hist('info', d3));
+check('doom3 name/map/max parsed', d3p.name === 'My Doom3' && d3p.map === 'd3dm1' && d3p.max_players === 8);
+check('doom3 player parsed', JSON.stringify(d3p.players_list) === JSON.stringify(['Marine']));
+const aseStr = (v: string): Buffer => Buffer.concat([Buffer.from([v.length + 1]), Buffer.from(v, 'latin1')]);
+const ase = Buffer.concat([
+  Buffer.from('EYE1', 'latin1'),
+  aseStr('MTA:SA'), aseStr('22003'), aseStr('My MTA'), aseStr('Roleplay'), aseStr('San Andreas'),
+  aseStr('1.5'), aseStr('0'), aseStr('2'), aseStr('50'),
+  aseStr('buildtype'), aseStr('release'), Buffer.from([0x01]),
+  Buffer.from([0x01]), aseStr('Alice'), Buffer.from([0x01]), aseStr('Bob'),
+]);
+const asep = new Ase().parse(srv('ase', 'x:22126'), hist('info', ase));
+check('ase name/map/max parsed', asep.name === 'My MTA' && asep.map === 'San Andreas' && asep.max_players === 50);
+check('ase players parsed', asep.players === 2 && JSON.stringify(asep.players_list) === JSON.stringify(['Alice', 'Bob']));
 
 console.log('\n' + (failures === 0 ? `All ${passed} checks passed.` : `${failures} of ${passed + failures} checks FAILED.`));
 process.exit(failures === 0 ? 0 : 1);

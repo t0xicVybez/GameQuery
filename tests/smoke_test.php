@@ -24,6 +24,8 @@ use GameQuery\Protocol\GameSpy1;
 use GameQuery\Protocol\GameSpy2;
 use GameQuery\Protocol\GameSpy3;
 use GameQuery\Protocol\Unreal2;
+use GameQuery\Protocol\Doom3;
+use GameQuery\Protocol\Ase;
 use GameQuery\Protocol\Source;
 use GameQuery\Server;
 
@@ -295,6 +297,40 @@ check('gamespy2 hostname parsed', $gs2Parsed['name'] === 'My Halo Server');
 check('gamespy2 map parsed', $gs2Parsed['map'] === 'Blood Gulch');
 check('gamespy2 max players parsed', $gs2Parsed['max_players'] === 16);
 check('gamespy2 player names parsed', $gs2Parsed['players_list'] === ['MasterChief', 'Cortana']);
+
+echo "\nDoom3 (id Tech 4 infoResponse) parsing\n";
+$d3 = new Doom3();
+$d3Server = Server::fromAddress('doom3', '127.0.0.1:27666');
+$d3Response = "\xff\xffinfoResponse\x00\x00\x00\x00\x00"
+    . "si_name\x00My Doom3 Server\x00si_map\x00game/mp/d3dm1\x00si_maxPlayers\x008\x00gamename\x00DOOM\x00si_version\x00DOOM 1.3.1\x00"
+    . "\x00"  // empty key terminates cvars
+    . "\x00\x0f\x00\x00\x00\x00\x00Marine\x00"  // one player: id 0, ping 15, rate 0, name
+    . "\x20"; // 0x20 end marker
+$d3Parsed = $d3->parse($d3Server, [['tag' => 'info', 'request' => '', 'response' => $d3Response]]);
+check('doom3 name parsed', $d3Parsed['name'] === 'My Doom3 Server');
+check('doom3 map parsed', $d3Parsed['map'] === 'game/mp/d3dm1');
+check('doom3 max players parsed', $d3Parsed['max_players'] === 8);
+check('doom3 player name parsed', $d3Parsed['players_list'] === ['Marine']);
+check('doom3 version exposed', ($d3Parsed['version'] ?? null) === 'DOOM 1.3.1');
+
+echo "\nASE (All-Seeing Eye) parsing\n";
+$ase = new Ase();
+$aseServer = Server::fromAddress('ase', '127.0.0.1:22126');
+$s = static fn (string $v): string => chr(strlen($v) + 1) . $v; // length-prefixed (len incl. itself)
+$aseResponse = 'EYE1'
+    . $s('MTA:SA') . $s('22003') . $s('My MTA Server') . $s('Roleplay') . $s('San Andreas')
+    . $s('1.5') . $s('0') . $s('2') . $s('50')
+    . $s('buildtype') . $s('release')       // one rule pair
+    . "\x01"                                  // empty key ends rules
+    . "\x01" . $s('Alice')                    // player: flags=name only, name
+    . "\x01" . $s('Bob');
+$aseParsed = $ase->parse($aseServer, [['tag' => 'info', 'request' => '', 'response' => $aseResponse]]);
+check('ase hostname parsed', $aseParsed['name'] === 'My MTA Server');
+check('ase map parsed', $aseParsed['map'] === 'San Andreas');
+check('ase max players parsed', $aseParsed['max_players'] === 50);
+check('ase player count parsed', $aseParsed['players'] === 2);
+check('ase player names parsed', $aseParsed['players_list'] === ['Alice', 'Bob']);
+check('ase game exposed', ($aseParsed['game'] ?? null) === 'MTA:SA');
 
 echo "\n" . ($failures === 0 ? "All {$passed} checks passed.\n" : "{$failures} of " . ($passed + $failures) . " checks FAILED.\n");
 exit($failures === 0 ? 0 : 1);

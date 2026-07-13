@@ -64,6 +64,10 @@ port or adaptation of any existing library's code.
     Floor, Red Orchestra, America's Army 2, and other UE2 games.
     - `unreal2` — server info + player list
     - `unreal2-info` — server info only
+  - **id Tech 4 / Doom 3** (`doom3`) — Doom 3, Quake 4, Enemy Territory: Quake
+    Wars, and Prey.
+  - **All-Seeing Eye** (`ase`) — Multi Theft Auto (MTA:SA) and other titles
+    that adopted the ASE browser format.
 - **Works standalone or via Composer.** `autoload.php` for a plain FTP
   drop-in on a shared host; `composer.json` if you'd rather pull it in as
   a package.

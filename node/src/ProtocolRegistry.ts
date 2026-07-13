@@ -10,6 +10,8 @@ import { GameSpy1 } from './protocol/GameSpy1.js';
 import { GameSpy2 } from './protocol/GameSpy2.js';
 import { GameSpy3 } from './protocol/GameSpy3.js';
 import { Unreal2 } from './protocol/Unreal2.js';
+import { Doom3 } from './protocol/Doom3.js';
+import { Ase } from './protocol/Ase.js';
 
 export type ProtocolFactory = () => ProtocolInterface;
 
@@ -37,6 +39,8 @@ export class ProtocolRegistry {
     [GameSpy3.protocolName(), () => new GameSpy3()],
     [Unreal2.protocolName(), () => new Unreal2()],
     ['unreal2-info', () => new Unreal2(false)],
+    [Doom3.protocolName(), () => new Doom3()],
+    [Ase.protocolName(), () => new Ase()],
   ]);
 
   register(name: string, factory: ProtocolFactory): void {
