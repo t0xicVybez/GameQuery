@@ -48,9 +48,16 @@ port or adaptation of any existing library's code.
     Usage below).
     - `palworld` — server info + connected player list
     - `palworld-info` — server info only (no auth-protected players call)
+  - **id Tech 2 / Quake 2** (`quake2`) — the `status` protocol behind Quake 2
+    and its source ports / mods.
   - **id Tech 3 / Quake 3** (`quake3`) — the `getstatus` protocol behind
     Quake 3, all of Call of Duty 1/2/4/UO/WaW, OpenArena, Xonotic, Warsow,
     Urban Terror, Wolfenstein: Enemy Territory, Jedi Academy, and more.
+  - **GameSpy 1** (`gamespy1`) — the original text `\status\` query: Unreal,
+    Unreal Tournament (99/GOTY), Deus Ex, Tribes 2, Serious Sam, and other
+    late-90s/early-2000s titles.
+  - **GameSpy 2** (`gamespy2`) — Halo (PC), Battlefield 1942 / Vietnam,
+    Neverwinter Nights, SWAT 4, Star Wars Battlefront, and others.
   - **GameSpy 3** (`gamespy3`) — Battlefield 2, Crysis, Unreal Tournament 3,
     Quake 4, and other mid-2000s titles. Challenge/response over UDP.
   - **Unreal Engine 2** (`unreal2`) — Unreal Tournament 2003/2004, Killing

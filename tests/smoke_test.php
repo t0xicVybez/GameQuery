@@ -18,7 +18,10 @@ use GameQuery\Protocol\Minecraft;
 use GameQuery\Protocol\Bedrock;
 use GameQuery\Protocol\FiveM;
 use GameQuery\Protocol\Palworld;
+use GameQuery\Protocol\Quake2;
 use GameQuery\Protocol\Quake3;
+use GameQuery\Protocol\GameSpy1;
+use GameQuery\Protocol\GameSpy2;
 use GameQuery\Protocol\GameSpy3;
 use GameQuery\Protocol\Unreal2;
 use GameQuery\Protocol\Source;
@@ -250,6 +253,48 @@ check('unreal2 map parsed', $u2Parsed['map'] === 'DM-Rankin');
 check('unreal2 gametype parsed', $u2Parsed['gametype'] === 'DeathMatch');
 check('unreal2 player count parsed', $u2Parsed['players'] === 5);
 check('unreal2 max players parsed', $u2Parsed['max_players'] === 16);
+
+echo "\nQuake2 (id Tech 2 status) parsing\n";
+$q2 = new Quake2();
+$q2Server = Server::fromAddress('quake2', '127.0.0.1:27910');
+$q2Response = "\xff\xff\xff\xffprint\n"
+    . "\\maxclients\\16\\hostname\\My Q2 Server\\mapname\\q2dm1\\gamename\\baseq2\n"
+    . "20 50 \"Ranger\"\n"
+    . "12 80 \"Grunt\"\n";
+$q2Parsed = $q2->parse($q2Server, [['tag' => 'status', 'request' => '', 'response' => $q2Response]]);
+check('quake2 hostname parsed', $q2Parsed['name'] === 'My Q2 Server');
+check('quake2 map parsed', $q2Parsed['map'] === 'q2dm1');
+check('quake2 max players parsed', $q2Parsed['max_players'] === 16);
+check('quake2 player names parsed', $q2Parsed['players_list'] === ['Ranger', 'Grunt']);
+
+echo "\nGameSpy1 (text \\status\\) parsing\n";
+$gs1 = new GameSpy1();
+$gs1Server = Server::fromAddress('gamespy1', '127.0.0.1:7778');
+$gs1Response = '\\hostname\\My UT Server\\mapname\\CTF-Face\\gametype\\CTF\\numplayers\\2\\maxplayers\\16'
+    . '\\player_0\\Loque\\frags_0\\15\\player_1\\Xan\\frags_1\\20\\final\\\\queryid\\1.1';
+$gs1Parsed = $gs1->parse($gs1Server, [['tag' => 'status', 'request' => '', 'response' => $gs1Response]]);
+check('gamespy1 hostname parsed', $gs1Parsed['name'] === 'My UT Server');
+check('gamespy1 map parsed', $gs1Parsed['map'] === 'CTF-Face');
+check('gamespy1 max players parsed', $gs1Parsed['max_players'] === 16);
+check('gamespy1 players ordered by suffix', $gs1Parsed['players_list'] === ['Loque', 'Xan']);
+check('gamespy1 gametype parsed', ($gs1Parsed['gametype'] ?? null) === 'CTF');
+
+echo "\nGameSpy2 (binary rules + players) parsing\n";
+$gs2 = new GameSpy2();
+$gs2Server = Server::fromAddress('gamespy2', '127.0.0.1:23000');
+// \x00 <id:4> then rules (key\0value\0.. empty key) then players (fieldcount, fields, rows)
+$gs2Response = "\x00\x04\x05\x06\x07"
+    . "hostname\x00My Halo Server\x00mapname\x00Blood Gulch\x00numplayers\x002\x00maxplayers\x0016\x00gametype\x00CTF\x00"
+    . "\x00"                                  // empty key terminates rules
+    . "\x02"                                  // 2 player fields
+    . "player_\x00score_\x00"                 // field names
+    . "MasterChief\x00100\x00Cortana\x0080\x00" // 2 player rows
+    . "\x00";                                 // empty value ends roster
+$gs2Parsed = $gs2->parse($gs2Server, [['tag' => 'info', 'request' => '', 'response' => $gs2Response]]);
+check('gamespy2 hostname parsed', $gs2Parsed['name'] === 'My Halo Server');
+check('gamespy2 map parsed', $gs2Parsed['map'] === 'Blood Gulch');
+check('gamespy2 max players parsed', $gs2Parsed['max_players'] === 16);
+check('gamespy2 player names parsed', $gs2Parsed['players_list'] === ['MasterChief', 'Cortana']);
 
 echo "\n" . ($failures === 0 ? "All {$passed} checks passed.\n" : "{$failures} of " . ($passed + $failures) . " checks FAILED.\n");
 exit($failures === 0 ? 0 : 1);

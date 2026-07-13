@@ -7,10 +7,13 @@ namespace GameQuery;
 use GameQuery\Exception\GameQueryException;
 use GameQuery\Protocol\Bedrock;
 use GameQuery\Protocol\FiveM;
+use GameQuery\Protocol\GameSpy1;
+use GameQuery\Protocol\GameSpy2;
 use GameQuery\Protocol\GameSpy3;
 use GameQuery\Protocol\Minecraft;
 use GameQuery\Protocol\Palworld;
 use GameQuery\Protocol\ProtocolInterface;
+use GameQuery\Protocol\Quake2;
 use GameQuery\Protocol\Quake3;
 use GameQuery\Protocol\Source;
 use GameQuery\Protocol\Unreal2;
@@ -42,7 +45,10 @@ final class ProtocolRegistry
             'palworld-info' => static fn () => new Palworld(includePlayers: false),
             FiveM::name() => static fn () => new FiveM(),
             'fivem-info' => static fn () => new FiveM(includePlayers: false),
+            Quake2::name() => static fn () => new Quake2(),
             Quake3::name() => static fn () => new Quake3(),
+            GameSpy1::name() => static fn () => new GameSpy1(),
+            GameSpy2::name() => static fn () => new GameSpy2(),
             GameSpy3::name() => static fn () => new GameSpy3(),
             Unreal2::name() => static fn () => new Unreal2(),
             'unreal2-info' => static fn () => new Unreal2(includePlayers: false),
