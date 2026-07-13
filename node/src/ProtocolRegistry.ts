@@ -15,6 +15,7 @@ import { Ase } from './protocol/Ase.js';
 import { Mumble } from './protocol/Mumble.js';
 import { Frostbite } from './protocol/Frostbite.js';
 import { AssettoCorsa } from './protocol/AssettoCorsa.js';
+import { TeamSpeak3 } from './protocol/TeamSpeak3.js';
 
 export type ProtocolFactory = () => ProtocolInterface;
 
@@ -47,6 +48,7 @@ export class ProtocolRegistry {
     [Mumble.protocolName(), () => new Mumble()],
     [Frostbite.protocolName(), () => new Frostbite()],
     [AssettoCorsa.protocolName(), () => new AssettoCorsa()],
+    [TeamSpeak3.protocolName(), () => new TeamSpeak3()],
   ]);
 
   register(name: string, factory: ProtocolFactory): void {

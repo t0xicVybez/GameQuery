@@ -21,6 +21,7 @@ use GameQuery\Protocol\ProtocolInterface;
 use GameQuery\Protocol\Quake2;
 use GameQuery\Protocol\Quake3;
 use GameQuery\Protocol\Source;
+use GameQuery\Protocol\TeamSpeak3;
 use GameQuery\Protocol\Unreal2;
 
 /**
@@ -62,6 +63,7 @@ final class ProtocolRegistry
             Mumble::name() => static fn () => new Mumble(),
             Frostbite::name() => static fn () => new Frostbite(),
             AssettoCorsa::name() => static fn () => new AssettoCorsa(),
+            TeamSpeak3::name() => static fn () => new TeamSpeak3(),
         ];
     }
 

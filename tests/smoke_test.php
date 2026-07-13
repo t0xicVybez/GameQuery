@@ -29,6 +29,7 @@ use GameQuery\Protocol\Ase;
 use GameQuery\Protocol\Mumble;
 use GameQuery\Protocol\Frostbite;
 use GameQuery\Protocol\AssettoCorsa;
+use GameQuery\Protocol\TeamSpeak3;
 use GameQuery\Protocol\Source;
 use GameQuery\Server;
 
@@ -394,6 +395,25 @@ check('assettocorsa password flag parsed', $acParsed['password'] === true);
 check('assettocorsa framing gated by content-length', $ac->isResponseComplete(substr($acResponse, 0, strlen($acResponse) - 5)) === false);
 check('assettocorsa framing complete', $ac->isResponseComplete($acResponse) === true);
 check('assettocorsa non-200 rejected', $ac->parse($acServer, [['tag' => 'info', 'request' => '', 'response' => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"]]) === []);
+
+echo "\nTeamSpeak 3 (ServerQuery) parsing\n";
+$ts = new TeamSpeak3();
+$tsServer = Server::fromAddress('teamspeak3', '127.0.0.1:10011');
+$tsResponse = "TS3\r\n"
+    . "Welcome to the TeamSpeak 3 ServerQuery interface, type \"help\" for a list of commands.\r\n"
+    . "error id=0 msg=ok\r\n"                                 // reply to `use`
+    . "virtualserver_unique_identifier=abc123 virtualserver_name=My\\sCool\\sTS3\\sServer "
+    . "virtualserver_maxclients=32 virtualserver_clientsonline=6 virtualserver_channelsonline=10 "
+    . "virtualserver_version=3.13.7 virtualserver_platform=Linux virtualserver_queryclientsonline=1\r\n"
+    . "error id=0 msg=ok\r\n";                                // reply to `serverinfo`
+$tsParsed = $ts->parse($tsServer, [['tag' => 'query', 'request' => '', 'response' => $tsResponse]]);
+check('teamspeak3 name unescaped', $tsParsed['name'] === 'My Cool TS3 Server');
+check('teamspeak3 players excl. query clients', $tsParsed['players'] === 5); // 6 online - 1 query
+check('teamspeak3 max clients parsed', $tsParsed['max_players'] === 32);
+check('teamspeak3 version parsed', $tsParsed['version'] === '3.13.7');
+check('teamspeak3 completion needs two error lines', $ts->isResponseComplete("TS3\r\nerror id=0 msg=ok\r\n") === false);
+check('teamspeak3 completion after serverinfo', $ts->isResponseComplete($tsResponse) === true);
+check('teamspeak3 request selects voice port', str_contains($ts->initialStep(Server::fromAddress('teamspeak3', 'x:10011', null, ['voicePort' => 9988]))['packet'], 'use port=9988'));
 
 echo "\n" . ($failures === 0 ? "All {$passed} checks passed.\n" : "{$failures} of " . ($passed + $failures) . " checks FAILED.\n");
 exit($failures === 0 ? 0 : 1);

@@ -74,6 +74,9 @@ port or adaptation of any existing library's code.
     Bad Company 2) and the Medal of Honor reboots, via the RCON word protocol.
   - **Assetto Corsa** (`assettocorsa`) — the racing sim's HTTP `/INFO`
     endpoint (pass the HTTP port): name, drivers online, max, and track.
+  - **TeamSpeak 3** (`teamspeak3`) — TS3 / TeaSpeak voice servers via the
+    ServerQuery interface (connect to the query port, default 10011; pass the
+    voice port as `options['voicePort']`).
 - **Works standalone or via Composer.** `autoload.php` for a plain FTP
   drop-in on a shared host; `composer.json` if you'd rather pull it in as
   a package.

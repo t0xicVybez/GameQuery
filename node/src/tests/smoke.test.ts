@@ -19,6 +19,7 @@ import { Ase } from '../protocol/Ase.js';
 import { Mumble } from '../protocol/Mumble.js';
 import { Frostbite } from '../protocol/Frostbite.js';
 import { AssettoCorsa } from '../protocol/AssettoCorsa.js';
+import { TeamSpeak3 } from '../protocol/TeamSpeak3.js';
 import type { HistoryEntry } from '../types.js';
 
 let passed = 0;
@@ -200,6 +201,28 @@ check('assettocorsa players/max/password parsed', acp.players === 12 && acp.max_
 check('assettocorsa framing gated by content-length', ac.isResponseComplete(acResponse.subarray(0, acResponse.length - 5)) === false);
 check('assettocorsa framing complete', ac.isResponseComplete(acResponse) === true);
 check('assettocorsa non-200 rejected', Object.keys(ac.parse(srv('assettocorsa', 'x:8081'), hist('info', Buffer.from('HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n', 'latin1')))).length === 0);
+
+console.log('\nTeamSpeak 3 (ServerQuery)');
+const tsResponse = Buffer.from(
+  'TS3\r\n' +
+    'Welcome to the TeamSpeak 3 ServerQuery interface, type "help" for a list of commands.\r\n' +
+    'error id=0 msg=ok\r\n' +
+    'virtualserver_unique_identifier=abc123 virtualserver_name=My\\sCool\\sTS3\\sServer ' +
+    'virtualserver_maxclients=32 virtualserver_clientsonline=6 virtualserver_channelsonline=10 ' +
+    'virtualserver_version=3.13.7 virtualserver_platform=Linux virtualserver_queryclientsonline=1\r\n' +
+    'error id=0 msg=ok\r\n',
+  'latin1',
+);
+const ts = new TeamSpeak3();
+const tsp = ts.parse(srv('teamspeak3', 'x:10011'), hist('query', tsResponse));
+check('teamspeak3 name/max/version parsed', tsp.name === 'My Cool TS3 Server' && tsp.max_players === 32 && tsp.version === '3.13.7');
+check('teamspeak3 players exclude query clients', tsp.players === 5);
+check('teamspeak3 completion needs two error lines', ts.isResponseComplete(Buffer.from('TS3\r\nerror id=0 msg=ok\r\n', 'latin1')) === false);
+check('teamspeak3 completion after serverinfo', ts.isResponseComplete(tsResponse) === true);
+check(
+  'teamspeak3 request selects voice port',
+  ts.initialStep(Server.fromAddress('teamspeak3', 'x:10011', null, { voicePort: 9988 })).packet.toString('latin1').includes('use port=9988'),
+);
 
 console.log('\n' + (failures === 0 ? `All ${passed} checks passed.` : `${failures} of ${passed + failures} checks FAILED.`));
 process.exit(failures === 0 ? 0 : 1);
