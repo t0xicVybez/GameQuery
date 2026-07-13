@@ -17,6 +17,7 @@ import { Unreal2 } from '../protocol/Unreal2.js';
 import { Doom3 } from '../protocol/Doom3.js';
 import { Ase } from '../protocol/Ase.js';
 import { Mumble } from '../protocol/Mumble.js';
+import { Frostbite } from '../protocol/Frostbite.js';
 import type { HistoryEntry } from '../types.js';
 
 let passed = 0;
@@ -156,6 +157,28 @@ const mp = new Mumble().parse(srv('mumble', 'x:64738'), hist('ping', mumble));
 check('mumble version/users/max parsed', mp.version === '1.4.31' && mp.players === 42 && mp.max_players === 100);
 check('mumble bandwidth parsed', mp.bandwidth === 72000);
 check('mumble short packet rejected', Object.keys(new Mumble().parse(srv('mumble', 'x:64738'), hist('ping', Buffer.from([0, 1])))).length === 0);
+
+console.log('\nFrostbite (Battlefield)');
+const fbWord = (v: string): Buffer => {
+  const wb = Buffer.from(v, 'latin1');
+  const len = Buffer.alloc(4);
+  len.writeUInt32LE(wb.length, 0);
+  return Buffer.concat([len, wb, Buffer.from([0])]);
+};
+const fbWords = ['OK', 'My BF4 Server', '32', '64', 'ConquestLarge0', 'MP_Prison'];
+const fbBody = Buffer.concat(fbWords.map(fbWord));
+const fbHeader = Buffer.alloc(12);
+fbHeader.writeUInt32LE(0x40000000, 0); // response flag
+fbHeader.writeUInt32LE(12 + fbBody.length, 4);
+fbHeader.writeUInt32LE(fbWords.length, 8);
+const fbResponse = Buffer.concat([fbHeader, fbBody]);
+const fb = new Frostbite();
+const fbp = fb.parse(srv('frostbite', 'x:47200'), hist('serverInfo', fbResponse));
+check('frostbite name/players/max parsed', fbp.name === 'My BF4 Server' && fbp.players === 32 && fbp.max_players === 64);
+check('frostbite gamemode/map parsed', fbp.game === 'ConquestLarge0' && fbp.map === 'MP_Prison');
+check('frostbite framing incomplete', fb.isResponseComplete(fbResponse.subarray(0, 10)) === false);
+check('frostbite framing complete', fb.isResponseComplete(fbResponse) === true);
+check('frostbite request framing well-formed', fb.isResponseComplete(fb.initialStep(srv('frostbite', 'x:47200')).packet) === true);
 
 console.log('\n' + (failures === 0 ? `All ${passed} checks passed.` : `${failures} of ${passed + failures} checks FAILED.`));
 process.exit(failures === 0 ? 0 : 1);

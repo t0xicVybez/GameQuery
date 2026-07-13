@@ -10,6 +10,7 @@ use GameQuery\Protocol\Bedrock;
 use GameQuery\Protocol\Doom3;
 use GameQuery\Protocol\Mumble;
 use GameQuery\Protocol\FiveM;
+use GameQuery\Protocol\Frostbite;
 use GameQuery\Protocol\GameSpy1;
 use GameQuery\Protocol\GameSpy2;
 use GameQuery\Protocol\GameSpy3;
@@ -58,6 +59,7 @@ final class ProtocolRegistry
             Doom3::name() => static fn () => new Doom3(),
             Ase::name() => static fn () => new Ase(),
             Mumble::name() => static fn () => new Mumble(),
+            Frostbite::name() => static fn () => new Frostbite(),
         ];
     }
 

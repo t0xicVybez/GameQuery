@@ -27,6 +27,7 @@ use GameQuery\Protocol\Unreal2;
 use GameQuery\Protocol\Doom3;
 use GameQuery\Protocol\Ase;
 use GameQuery\Protocol\Mumble;
+use GameQuery\Protocol\Frostbite;
 use GameQuery\Protocol\Source;
 use GameQuery\Server;
 
@@ -347,6 +348,30 @@ check('mumble users parsed', $mumbleParsed['players'] === 42);
 check('mumble max users parsed', $mumbleParsed['max_players'] === 100);
 check('mumble bandwidth parsed', $mumbleParsed['bandwidth'] === 72000);
 check('mumble short packet rejected', $mumble->parse($mumbleServer, [['tag' => 'ping', 'request' => '', 'response' => "\x00\x01"]]) === []);
+
+echo "\nFrostbite (Battlefield) parsing\n";
+$fb = new Frostbite();
+$fbServer = Server::fromAddress('frostbite', '127.0.0.1:47200');
+$word = static fn (string $v): string => pack('V', strlen($v)) . $v . "\x00";
+$fbWords = ['OK', 'My BF4 Server', '32', '64', 'ConquestLarge0', 'MP_Prison'];
+$fbBody = '';
+foreach ($fbWords as $w) {
+    $fbBody .= $word($w);
+}
+$fbResponse = pack('V', 0x40000000) . pack('V', 12 + strlen($fbBody)) . pack('V', count($fbWords)) . $fbBody;
+$fbParsed = $fb->parse($fbServer, [['tag' => 'serverInfo', 'request' => '', 'response' => $fbResponse]]);
+check('frostbite name parsed', $fbParsed['name'] === 'My BF4 Server');
+check('frostbite players parsed', $fbParsed['players'] === 32);
+check('frostbite max players parsed', $fbParsed['max_players'] === 64);
+check('frostbite gamemode parsed', $fbParsed['game'] === 'ConquestLarge0');
+check('frostbite map parsed', $fbParsed['map'] === 'MP_Prison');
+check('frostbite non-OK rejected', $fb->parse($fbServer, [['tag' => 'serverInfo', 'request' => '', 'response' => pack('V', 0) . pack('V', 12 + strlen($word('NotFound'))) . pack('V', 1) . $word('NotFound')]]) === []);
+// isResponseComplete framing: a partial buffer is not yet complete.
+check('frostbite framing incomplete', $fb->isResponseComplete(substr($fbResponse, 0, 10)) === false);
+check('frostbite framing complete', $fb->isResponseComplete($fbResponse) === true);
+// The request we would send round-trips through our own parser as well-formed.
+$fbRequest = $fb->initialStep($fbServer)['packet'];
+check('frostbite request framing well-formed', $fb->isResponseComplete($fbRequest) === true);
 
 echo "\n" . ($failures === 0 ? "All {$passed} checks passed.\n" : "{$failures} of " . ($passed + $failures) . " checks FAILED.\n");
 exit($failures === 0 ? 0 : 1);

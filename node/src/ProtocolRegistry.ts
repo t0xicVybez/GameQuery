@@ -13,6 +13,7 @@ import { Unreal2 } from './protocol/Unreal2.js';
 import { Doom3 } from './protocol/Doom3.js';
 import { Ase } from './protocol/Ase.js';
 import { Mumble } from './protocol/Mumble.js';
+import { Frostbite } from './protocol/Frostbite.js';
 
 export type ProtocolFactory = () => ProtocolInterface;
 
@@ -43,6 +44,7 @@ export class ProtocolRegistry {
     [Doom3.protocolName(), () => new Doom3()],
     [Ase.protocolName(), () => new Ase()],
     [Mumble.protocolName(), () => new Mumble()],
+    [Frostbite.protocolName(), () => new Frostbite()],
   ]);
 
   register(name: string, factory: ProtocolFactory): void {

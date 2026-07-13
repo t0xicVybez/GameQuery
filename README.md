@@ -70,6 +70,8 @@ port or adaptation of any existing library's code.
     that adopted the ASE browser format.
   - **Mumble** (`mumble`) — Murmur / Mumble voice servers (UDP ping on the
     voice port, default 64738): version, user count, and max users.
+  - **Frostbite** (`frostbite`) — DICE's Battlefield line (BF3, BF4,
+    Bad Company 2) and the Medal of Honor reboots, via the RCON word protocol.
 - **Works standalone or via Composer.** `autoload.php` for a plain FTP
   drop-in on a shared host; `composer.json` if you'd rather pull it in as
   a package.
