@@ -1,0 +1,65 @@
+<?php
+
+declare(strict_types=1);
+
+namespace GameQuery;
+
+use GameQuery\Exception\GameQueryException;
+use GameQuery\Protocol\Bedrock;
+use GameQuery\Protocol\FiveM;
+use GameQuery\Protocol\Minecraft;
+use GameQuery\Protocol\Palworld;
+use GameQuery\Protocol\ProtocolInterface;
+use GameQuery\Protocol\Source;
+
+/**
+ * Looks up a ProtocolInterface instance by the short name used in
+ * addServer(), e.g. 'source' or 'minecraft'.
+ *
+ * To add support for another game protocol: write a class implementing
+ * ProtocolInterface (AbstractProtocol gives you a head start), then either
+ * call GameQuery::registerProtocol() at runtime or add a factory entry
+ * below if it's going in the library itself.
+ */
+final class ProtocolRegistry
+{
+    /** @var array<string, callable(): ProtocolInterface> */
+    private array $factories;
+
+    public function __construct()
+    {
+        $this->factories = [
+            Source::name() => static fn () => new Source(),
+            'source-players' => static fn () => new Source(includePlayers: true),
+            'source-full' => static fn () => new Source(includePlayers: true, includeRules: true),
+            Minecraft::name() => static fn () => new Minecraft(),
+            Bedrock::name() => static fn () => new Bedrock(),
+            'minecraft-bedrock' => static fn () => new Bedrock(),
+            Palworld::name() => static fn () => new Palworld(),
+            'palworld-info' => static fn () => new Palworld(includePlayers: false),
+            FiveM::name() => static fn () => new FiveM(),
+            'fivem-info' => static fn () => new FiveM(includePlayers: false),
+        ];
+    }
+
+    public function register(string $name, callable $factory): void
+    {
+        $this->factories[$name] = $factory;
+    }
+
+    public function get(string $name): ProtocolInterface
+    {
+        if (!isset($this->factories[$name])) {
+            throw new GameQueryException(
+                "Unknown protocol '{$name}'. Register it with GameQuery::registerProtocol() first."
+            );
+        }
+
+        return ($this->factories[$name])();
+    }
+
+    public function has(string $name): bool
+    {
+        return isset($this->factories[$name]);
+    }
+}

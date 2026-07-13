@@ -1,0 +1,63 @@
+<?php
+
+declare(strict_types=1);
+
+namespace GameQuery;
+
+use GameQuery\Exception\GameQueryException;
+
+/**
+ * A single server to query. Immutable -- build one per server you're polling.
+ */
+final class Server
+{
+    public readonly string $host;
+    public readonly int $port;
+    public readonly string $protocol;
+
+    /** Arbitrary caller-supplied tag (e.g. a DB id or Discord channel id) echoed back in the Result. */
+    public readonly mixed $id;
+
+    /**
+     * Per-server protocol config that isn't just host/port -- credentials
+     * being the main case (Palworld's REST API needs an admin password;
+     * a protocol added later might need an RCON password, an API key,
+     * etc.). Deliberately a generic bag rather than dedicated fields so
+     * adding a new protocol never means widening this class again.
+     * Read the specific keys a protocol expects from its own docblock.
+     *
+     * @var array<string, mixed>
+     */
+    public readonly array $options;
+
+    public function __construct(string $protocol, string $host, int $port, mixed $id = null, array $options = [])
+    {
+        if ($port < 1 || $port > 65535) {
+            throw new GameQueryException("Invalid port: {$port}");
+        }
+
+        $this->protocol = $protocol;
+        $this->host = $host;
+        $this->port = $port;
+        $this->id = $id;
+        $this->options = $options;
+    }
+
+    /** Convenience factory for the common "host:port" shorthand. */
+    public static function fromAddress(string $protocol, string $address, mixed $id = null, array $options = []): self
+    {
+        if (!str_contains($address, ':')) {
+            throw new GameQueryException("Address '{$address}' must be in host:port form");
+        }
+
+        [$host, $port] = explode(':', $address, 2);
+
+        return new self($protocol, $host, (int) $port, $id, $options);
+    }
+
+    public function label(): string
+    {
+        return "{$this->host}:{$this->port}";
+    }
+}
+

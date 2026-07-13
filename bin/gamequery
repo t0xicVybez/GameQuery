@@ -1,0 +1,95 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * CLI wrapper -- lets a non-PHP process (e.g. ArkenBot's Node/TypeScript code)
+ * get query results as JSON via a simple child process call instead of
+ * needing a PHP runtime embedded in it.
+ *
+ * Usage:
+ *   php bin/gamequery source 127.0.0.1:27015
+ *   php bin/gamequery minecraft mc.example.com:25565
+ *   php bin/gamequery palworld 203.0.113.10:8212 --password "adminpw"
+ *   php bin/gamequery --batch '[
+ *     {"protocol":"source","address":"1.2.3.4:27015","id":"a"},
+ *     {"protocol":"palworld","address":"5.6.7.8:8212","id":"b","options":{"password":"adminpw"}}
+ *   ]'
+ *
+ * From Node:
+ *   const { execFile } = require('child_process');
+ *   execFile('php', ['bin/gamequery', 'source', host], (err, stdout) => {
+ *     const result = JSON.parse(stdout);
+ *   });
+ *
+ * Always exits 0 with JSON on stdout, even for offline servers -- check the
+ * `online` field per result. A non-zero exit means a usage error, not a
+ * server being down. Note: --password ends up visible in `ps` output on a
+ * shared machine, same as any CLI flag would -- prefer the --batch form
+ * with options if that matters for your setup.
+ */
+
+$composerAutoload = __DIR__ . '/../vendor/autoload.php';
+$standaloneAutoload = __DIR__ . '/../autoload.php';
+
+if (is_file($composerAutoload)) {
+    require $composerAutoload;
+} else {
+    require $standaloneAutoload;
+}
+
+use GameQuery\GameQuery;
+
+function fail(string $message): never
+{
+    fwrite(STDERR, $message . "\n");
+    exit(1);
+}
+
+$args = array_slice($argv, 1);
+
+if ($args === []) {
+    fail('Usage: gamequery <protocol> <host:port> [--password X] [--username X] | gamequery --batch \'<json>\'');
+}
+
+$gq = new GameQuery();
+$isBatch = $args[0] === '--batch';
+
+if ($isBatch) {
+    $json = $args[1] ?? fail('--batch requires a JSON argument');
+    $entries = json_decode($json, true);
+
+    if (!is_array($entries)) {
+        fail('--batch argument must be valid JSON array');
+    }
+
+    foreach ($entries as $entry) {
+        if (!isset($entry['protocol'], $entry['address'])) {
+            fail('Each batch entry needs "protocol" and "address"');
+        }
+        $gq->addServer(
+            $entry['protocol'],
+            $entry['address'],
+            $entry['id'] ?? null,
+            $entry['options'] ?? []
+        );
+    }
+} else {
+    $protocol = $args[0];
+    $address = $args[1] ?? fail('Missing host:port argument');
+
+    $options = [];
+    for ($i = 2; $i < count($args); $i += 2) {
+        $flag = $args[$i];
+        if (!str_starts_with($flag, '--')) {
+            fail("Unexpected argument '{$flag}', expected a --flag");
+        }
+        $value = $args[$i + 1] ?? fail("Flag {$flag} needs a value");
+        $options[substr($flag, 2)] = $value;
+    }
+
+    $gq->addServer($protocol, $address, null, $options);
+}
+
+$results = array_map(static fn ($r) => $r->toArray(), $gq->process());
+
+echo json_encode($isBatch ? $results : $results[0], JSON_PRETTY_PRINT), "\n";

@@ -1,0 +1,21 @@
+{
+    "name": "t0xicvybez/gamequery",
+    "description": "A dependency-free PHP library for querying multiplayer game server status (players, map, ping, rules) over UDP/TCP, with concurrent multi-server polling.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Cory",
+            "homepage": "https://github.com/t0xicVybez"
+        }
+    ],
+    "require": {
+        "php": ">=8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "GameQuery\\": "src/"
+        }
+    },
+    "minimum-stability": "stable"
+}
