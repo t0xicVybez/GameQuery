@@ -50,8 +50,8 @@ usage error.
 
 `source` (+ `-players`/`-full`), `minecraft`, `bedrock`, `fivem`, `palworld`,
 `quake2`, `quake3`, `gamespy1`, `gamespy2`, `gamespy3`, `unreal2`, `doom3`,
-`ase`, `mumble`, `frostbite`. See the [main README](../README.md) for the games
-each covers.
+`ase`, `mumble`, `frostbite`, `assettocorsa`. See the
+[main README](../README.md) for the games each covers.
 
 ## Develop
 

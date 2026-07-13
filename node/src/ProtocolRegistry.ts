@@ -14,6 +14,7 @@ import { Doom3 } from './protocol/Doom3.js';
 import { Ase } from './protocol/Ase.js';
 import { Mumble } from './protocol/Mumble.js';
 import { Frostbite } from './protocol/Frostbite.js';
+import { AssettoCorsa } from './protocol/AssettoCorsa.js';
 
 export type ProtocolFactory = () => ProtocolInterface;
 
@@ -45,6 +46,7 @@ export class ProtocolRegistry {
     [Ase.protocolName(), () => new Ase()],
     [Mumble.protocolName(), () => new Mumble()],
     [Frostbite.protocolName(), () => new Frostbite()],
+    [AssettoCorsa.protocolName(), () => new AssettoCorsa()],
   ]);
 
   register(name: string, factory: ProtocolFactory): void {

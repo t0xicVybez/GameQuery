@@ -6,6 +6,7 @@ namespace GameQuery;
 
 use GameQuery\Exception\GameQueryException;
 use GameQuery\Protocol\Ase;
+use GameQuery\Protocol\AssettoCorsa;
 use GameQuery\Protocol\Bedrock;
 use GameQuery\Protocol\Doom3;
 use GameQuery\Protocol\Mumble;
@@ -60,6 +61,7 @@ final class ProtocolRegistry
             Ase::name() => static fn () => new Ase(),
             Mumble::name() => static fn () => new Mumble(),
             Frostbite::name() => static fn () => new Frostbite(),
+            AssettoCorsa::name() => static fn () => new AssettoCorsa(),
         ];
     }
 

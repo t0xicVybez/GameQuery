@@ -28,6 +28,7 @@ use GameQuery\Protocol\Doom3;
 use GameQuery\Protocol\Ase;
 use GameQuery\Protocol\Mumble;
 use GameQuery\Protocol\Frostbite;
+use GameQuery\Protocol\AssettoCorsa;
 use GameQuery\Protocol\Source;
 use GameQuery\Server;
 
@@ -372,6 +373,27 @@ check('frostbite framing complete', $fb->isResponseComplete($fbResponse) === tru
 // The request we would send round-trips through our own parser as well-formed.
 $fbRequest = $fb->initialStep($fbServer)['packet'];
 check('frostbite request framing well-formed', $fb->isResponseComplete($fbRequest) === true);
+
+echo "\nAssetto Corsa parsing\n";
+$ac = new AssettoCorsa();
+$acServer = Server::fromAddress('assettocorsa', '127.0.0.1:8081');
+$acJson = json_encode([
+    'name' => 'Nordschleife Tourist',
+    'track' => 'ks_nordschleife',
+    'clients' => 12,
+    'maxclients' => 24,
+    'pass' => true,
+]);
+$acResponse = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " . strlen($acJson) . "\r\n\r\n" . $acJson;
+$acParsed = $ac->parse($acServer, [['tag' => 'info', 'request' => '', 'response' => $acResponse]]);
+check('assettocorsa name parsed', $acParsed['name'] === 'Nordschleife Tourist');
+check('assettocorsa track/map parsed', $acParsed['map'] === 'ks_nordschleife');
+check('assettocorsa players parsed', $acParsed['players'] === 12);
+check('assettocorsa max players parsed', $acParsed['max_players'] === 24);
+check('assettocorsa password flag parsed', $acParsed['password'] === true);
+check('assettocorsa framing gated by content-length', $ac->isResponseComplete(substr($acResponse, 0, strlen($acResponse) - 5)) === false);
+check('assettocorsa framing complete', $ac->isResponseComplete($acResponse) === true);
+check('assettocorsa non-200 rejected', $ac->parse($acServer, [['tag' => 'info', 'request' => '', 'response' => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"]]) === []);
 
 echo "\n" . ($failures === 0 ? "All {$passed} checks passed.\n" : "{$failures} of " . ($passed + $failures) . " checks FAILED.\n");
 exit($failures === 0 ? 0 : 1);

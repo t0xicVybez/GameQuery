@@ -18,6 +18,7 @@ import { Doom3 } from '../protocol/Doom3.js';
 import { Ase } from '../protocol/Ase.js';
 import { Mumble } from '../protocol/Mumble.js';
 import { Frostbite } from '../protocol/Frostbite.js';
+import { AssettoCorsa } from '../protocol/AssettoCorsa.js';
 import type { HistoryEntry } from '../types.js';
 
 let passed = 0;
@@ -179,6 +180,26 @@ check('frostbite gamemode/map parsed', fbp.game === 'ConquestLarge0' && fbp.map 
 check('frostbite framing incomplete', fb.isResponseComplete(fbResponse.subarray(0, 10)) === false);
 check('frostbite framing complete', fb.isResponseComplete(fbResponse) === true);
 check('frostbite request framing well-formed', fb.isResponseComplete(fb.initialStep(srv('frostbite', 'x:47200')).packet) === true);
+
+console.log('\nAssetto Corsa');
+const acJson = JSON.stringify({
+  name: 'Nordschleife Tourist',
+  track: 'ks_nordschleife',
+  clients: 12,
+  maxclients: 24,
+  pass: true,
+});
+const acResponse = Buffer.from(
+  `HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: ${Buffer.byteLength(acJson)}\r\n\r\n${acJson}`,
+  'latin1',
+);
+const ac = new AssettoCorsa();
+const acp = ac.parse(srv('assettocorsa', 'x:8081'), hist('info', acResponse));
+check('assettocorsa name/track parsed', acp.name === 'Nordschleife Tourist' && acp.map === 'ks_nordschleife');
+check('assettocorsa players/max/password parsed', acp.players === 12 && acp.max_players === 24 && acp.password === true);
+check('assettocorsa framing gated by content-length', ac.isResponseComplete(acResponse.subarray(0, acResponse.length - 5)) === false);
+check('assettocorsa framing complete', ac.isResponseComplete(acResponse) === true);
+check('assettocorsa non-200 rejected', Object.keys(ac.parse(srv('assettocorsa', 'x:8081'), hist('info', Buffer.from('HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n', 'latin1')))).length === 0);
 
 console.log('\n' + (failures === 0 ? `All ${passed} checks passed.` : `${failures} of ${passed + failures} checks FAILED.`));
 process.exit(failures === 0 ? 0 : 1);
