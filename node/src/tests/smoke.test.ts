@@ -22,6 +22,7 @@ import { AssettoCorsa } from '../protocol/AssettoCorsa.js';
 import { TeamSpeak3 } from '../protocol/TeamSpeak3.js';
 import { Terraria } from '../protocol/Terraria.js';
 import { Samp } from '../protocol/Samp.js';
+import { QuakeWorld } from '../protocol/QuakeWorld.js';
 import type { HistoryEntry } from '../types.js';
 
 let passed = 0;
@@ -307,6 +308,21 @@ check('samp request embeds ip octets', JSON.stringify([...sampReq.subarray(4, 8)
 check('samp request embeds LE port', sampReq.readUInt16LE(8) === 7777);
 const sampResolved = Server.fromAddress('samp', 'play.example.com:7777').withResolvedIp('203.0.113.5');
 check('samp uses resolved ip in packet', JSON.stringify([...samp.initialStep(sampResolved).packet.subarray(4, 8)]) === JSON.stringify([203, 0, 113, 5]));
+
+console.log('\nQuakeWorld');
+const qwResponse = Buffer.from(
+  '\xff\xff\xff\xffn' +
+    '\\maxclients\\16\\map\\dm6\\hostname\\Frag Palace\\*version\\ezQuake\\*gamedir\\qw\n' +
+    '1 12 300 "Ranger" "" 0 0\n' +
+    '2 8 250 "Visor" "" 4 4\n',
+  'latin1',
+);
+const qw = new QuakeWorld();
+const qwp = qw.parse(srv('quakeworld', 'x:27500'), hist('status', qwResponse));
+check('quakeworld hostname/map/max parsed', qwp.name === 'Frag Palace' && qwp.map === 'dm6' && qwp.max_players === 16);
+check('quakeworld players parsed', qwp.players === 2 && JSON.stringify(qwp.players_list) === JSON.stringify(['Ranger', 'Visor']));
+check('quakeworld gamedir/version exposed', qwp.game === 'qw' && qwp.version === 'ezQuake');
+check('quakeworld request is OOB status', qw.initialStep(srv('quakeworld', 'x:27500')).packet.equals(Buffer.from('\xff\xff\xff\xffstatus\n', 'latin1')));
 
 console.log('\n' + (failures === 0 ? `All ${passed} checks passed.` : `${failures} of ${passed + failures} checks FAILED.`));
 process.exit(failures === 0 ? 0 : 1);

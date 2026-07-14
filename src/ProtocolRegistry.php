@@ -20,6 +20,7 @@ use GameQuery\Protocol\Palworld;
 use GameQuery\Protocol\ProtocolInterface;
 use GameQuery\Protocol\Quake2;
 use GameQuery\Protocol\Quake3;
+use GameQuery\Protocol\QuakeWorld;
 use GameQuery\Protocol\Samp;
 use GameQuery\Protocol\Source;
 use GameQuery\Protocol\TeamSpeak3;
@@ -55,6 +56,8 @@ final class ProtocolRegistry
             'fivem-info' => static fn () => new FiveM(includePlayers: false),
             Quake2::name() => static fn () => new Quake2(),
             Quake3::name() => static fn () => new Quake3(),
+            QuakeWorld::name() => static fn () => new QuakeWorld(),
+            'quake1' => static fn () => new QuakeWorld(),
             GameSpy1::name() => static fn () => new GameSpy1(),
             GameSpy2::name() => static fn () => new GameSpy2(),
             GameSpy3::name() => static fn () => new GameSpy3(),

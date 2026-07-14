@@ -32,6 +32,7 @@ use GameQuery\Protocol\AssettoCorsa;
 use GameQuery\Protocol\TeamSpeak3;
 use GameQuery\Protocol\Terraria;
 use GameQuery\Protocol\Samp;
+use GameQuery\Protocol\QuakeWorld;
 use GameQuery\Exception\GameQueryException;
 use GameQuery\Protocol\Source;
 use GameQuery\Server;
@@ -484,6 +485,23 @@ check('samp request carries opcode', substr($sampReq, 10, 1) === 'i');
 // A resolved host feeds its numeric IP into the packet (address() fallback path).
 $sampResolved = Server::fromAddress('samp', 'play.example.com:7777')->withResolvedIp('203.0.113.5');
 check('samp uses resolved ip in packet', substr($samp->initialStep($sampResolved)['packet'], 4, 4) === chr(203) . chr(0) . chr(113) . chr(5));
+
+echo "\nQuakeWorld parsing\n";
+$qw = new QuakeWorld();
+$qwServer = Server::fromAddress('quakeworld', '127.0.0.1:27500');
+$qwResponse = "\xFF\xFF\xFF\xFFn"
+    . "\\maxclients\\16\\map\\dm6\\hostname\\Frag Palace\\*version\\ezQuake\\*gamedir\\qw\n"
+    . "1 12 300 \"Ranger\" \"\" 0 0\n"
+    . "2 8 250 \"Visor\" \"\" 4 4\n";
+$qwParsed = $qw->parse($qwServer, [['tag' => 'status', 'request' => '', 'response' => $qwResponse]]);
+check('quakeworld hostname parsed', $qwParsed['name'] === 'Frag Palace');
+check('quakeworld map parsed', $qwParsed['map'] === 'dm6');
+check('quakeworld max players parsed', $qwParsed['max_players'] === 16);
+check('quakeworld player count parsed', $qwParsed['players'] === 2);
+check('quakeworld player names parsed', $qwParsed['players_list'] === ['Ranger', 'Visor']);
+check('quakeworld gamedir exposed', ($qwParsed['game'] ?? null) === 'qw');
+check('quakeworld version exposed', ($qwParsed['version'] ?? null) === 'ezQuake');
+check('quakeworld request is OOB status', $qw->initialStep($qwServer)['packet'] === "\xFF\xFF\xFF\xFFstatus\x0A");
 
 echo "\n" . ($failures === 0 ? "All {$passed} checks passed.\n" : "{$failures} of " . ($passed + $failures) . " checks FAILED.\n");
 exit($failures === 0 ? 0 : 1);

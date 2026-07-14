@@ -6,6 +6,7 @@ import { Palworld } from './protocol/Palworld.js';
 import { FiveM } from './protocol/FiveM.js';
 import { Quake2 } from './protocol/Quake2.js';
 import { Quake3 } from './protocol/Quake3.js';
+import { QuakeWorld } from './protocol/QuakeWorld.js';
 import { GameSpy1 } from './protocol/GameSpy1.js';
 import { GameSpy2 } from './protocol/GameSpy2.js';
 import { GameSpy3 } from './protocol/GameSpy3.js';
@@ -40,6 +41,8 @@ export class ProtocolRegistry {
     ['fivem-info', () => new FiveM(false)],
     [Quake2.protocolName(), () => new Quake2()],
     [Quake3.protocolName(), () => new Quake3()],
+    [QuakeWorld.protocolName(), () => new QuakeWorld()],
+    ['quake1', () => new QuakeWorld()],
     [GameSpy1.protocolName(), () => new GameSpy1()],
     [GameSpy2.protocolName(), () => new GameSpy2()],
     [GameSpy3.protocolName(), () => new GameSpy3()],

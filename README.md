@@ -48,6 +48,8 @@ port or adaptation of any existing library's code.
     Usage below).
     - `palworld` — server info + connected player list
     - `palworld-info` — server info only (no auth-protected players call)
+  - **QuakeWorld / Quake 1** (`quakeworld`, alias `quake1`) — the original
+    Quake netcode, still spoken by ezQuake, FTE, nQuake and friends.
   - **id Tech 2 / Quake 2** (`quake2`) — the `status` protocol behind Quake 2
     and its source ports / mods.
   - **id Tech 3 / Quake 3** (`quake3`) — the `getstatus` protocol behind
