@@ -23,6 +23,7 @@ import { TeamSpeak3 } from '../protocol/TeamSpeak3.js';
 import { Terraria } from '../protocol/Terraria.js';
 import { Samp } from '../protocol/Samp.js';
 import { QuakeWorld } from '../protocol/QuakeWorld.js';
+import { MinecraftLegacy } from '../protocol/MinecraftLegacy.js';
 import type { HistoryEntry } from '../types.js';
 
 let passed = 0;
@@ -323,6 +324,29 @@ check('quakeworld hostname/map/max parsed', qwp.name === 'Frag Palace' && qwp.ma
 check('quakeworld players parsed', qwp.players === 2 && JSON.stringify(qwp.players_list) === JSON.stringify(['Ranger', 'Visor']));
 check('quakeworld gamedir/version exposed', qwp.game === 'qw' && qwp.version === 'ezQuake');
 check('quakeworld request is OOB status', qw.initialStep(srv('quakeworld', 'x:27500')).packet.equals(Buffer.from('\xff\xff\xff\xffstatus\n', 'latin1')));
+
+console.log('\nMinecraft legacy (pre-1.7)');
+const toUtf16Be = (s: string): Buffer => Buffer.from(s, 'utf16le').swap16();
+const mclHeader = (payload: Buffer): Buffer => {
+  const head = Buffer.alloc(3);
+  head[0] = 0xff;
+  head.writeUInt16BE(payload.length / 2, 1);
+  return Buffer.concat([head, payload]);
+};
+const mcl = new MinecraftLegacy();
+const mclServer = srv('minecraft-legacy', 'x:25565');
+// 1.4-1.6: §1 \0 protocol \0 version \0 motd \0 players \0 max
+const mclResponse = mclHeader(toUtf16Be('§1\x00127\x001.6.4\x00My Legacy Server\x007\x0020'));
+const mclp = mcl.parse(mclServer, hist('ping', mclResponse));
+check('minecraft-legacy motd/version/protocol parsed', mclp.name === 'My Legacy Server' && mclp.version === '1.6.4' && mclp.protocol_version === 127);
+check('minecraft-legacy players/max parsed', mclp.players === 7 && mclp.max_players === 20);
+check('minecraft-legacy framing gated by length', mcl.isResponseComplete(mclResponse.subarray(0, 5)) === false);
+check('minecraft-legacy framing complete', mcl.isResponseComplete(mclResponse) === true);
+check('minecraft-legacy request is FE01', mcl.initialStep(mclServer).packet.equals(Buffer.from([0xfe, 0x01])));
+// beta 1.3: motd § players § max (no leading §1)
+const betaResponse = mclHeader(toUtf16Be('A Beta Server§3§10'));
+const betap = mcl.parse(mclServer, hist('ping', betaResponse));
+check('minecraft-legacy beta motd/players parsed', betap.name === 'A Beta Server' && betap.players === 3 && betap.max_players === 10);
 
 console.log('\n' + (failures === 0 ? `All ${passed} checks passed.` : `${failures} of ${passed + failures} checks FAILED.`));
 process.exit(failures === 0 ? 0 : 1);

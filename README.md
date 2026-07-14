@@ -37,6 +37,9 @@ port or adaptation of any existing library's code.
   - **Minecraft: Bedrock Edition** (`bedrock`, alias `minecraft-bedrock`) —
     RakNet Unconnected Ping/Pong over UDP (name, versions, player count,
     world/MOTD line, gamemode). Default port 19132.
+  - **Minecraft: Java (legacy)** (`minecraft-legacy`) — the pre-1.7
+    `\xFE\x01` Server List Ping for 1.6-and-older servers (handles the 1.4-1.6
+    and the older beta payload shapes).
   - **FiveM / CFX** (`fivem`) — GTA V multiplayer. Speaks the server's HTTP
     JSON endpoints (`/info.json` + `/players.json`) rather than a binary
     protocol. Default port 30120.

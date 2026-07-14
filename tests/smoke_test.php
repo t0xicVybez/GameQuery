@@ -33,6 +33,7 @@ use GameQuery\Protocol\TeamSpeak3;
 use GameQuery\Protocol\Terraria;
 use GameQuery\Protocol\Samp;
 use GameQuery\Protocol\QuakeWorld;
+use GameQuery\Protocol\MinecraftLegacy;
 use GameQuery\Exception\GameQueryException;
 use GameQuery\Protocol\Source;
 use GameQuery\Server;
@@ -502,6 +503,48 @@ check('quakeworld player names parsed', $qwParsed['players_list'] === ['Ranger',
 check('quakeworld gamedir exposed', ($qwParsed['game'] ?? null) === 'qw');
 check('quakeworld version exposed', ($qwParsed['version'] ?? null) === 'ezQuake');
 check('quakeworld request is OOB status', $qw->initialStep($qwServer)['packet'] === "\xFF\xFF\xFF\xFFstatus\x0A");
+
+echo "\nMinecraft legacy (pre-1.7) parsing\n";
+$mcl = new MinecraftLegacy();
+$mclServer = Server::fromAddress('minecraft-legacy', '127.0.0.1:25565');
+$toUtf16Be = static function (string $s): string {
+    $out = '';
+    $i = 0;
+    $len = strlen($s);
+    while ($i < $len) {
+        $c = ord($s[$i]);
+        if ($c < 0x80) {
+            $cp = $c;
+            $i += 1;
+        } elseif ($c < 0xE0) {
+            $cp = (($c & 0x1F) << 6) | (ord($s[$i + 1]) & 0x3F);
+            $i += 2;
+        } else {
+            $cp = (($c & 0x0F) << 12) | ((ord($s[$i + 1]) & 0x3F) << 6) | (ord($s[$i + 2]) & 0x3F);
+            $i += 3;
+        }
+        $out .= chr(($cp >> 8) & 0xFF) . chr($cp & 0xFF);
+    }
+    return $out;
+};
+// 1.4-1.6 payload: §1 \0 protocol \0 version \0 motd \0 players \0 max
+$mclPayload = $toUtf16Be("\xC2\xA71\x00127\x001.6.4\x00My Legacy Server\x007\x0020");
+$mclResponse = "\xFF" . pack('n', strlen($mclPayload) / 2) . $mclPayload;
+$mclParsed = $mcl->parse($mclServer, [['tag' => 'ping', 'request' => '', 'response' => $mclResponse]]);
+check('minecraft-legacy motd/name parsed', $mclParsed['name'] === 'My Legacy Server');
+check('minecraft-legacy version parsed', $mclParsed['version'] === '1.6.4');
+check('minecraft-legacy protocol version parsed', $mclParsed['protocol_version'] === 127);
+check('minecraft-legacy players parsed', $mclParsed['players'] === 7);
+check('minecraft-legacy max players parsed', $mclParsed['max_players'] === 20);
+check('minecraft-legacy framing gated by length', $mcl->isResponseComplete(substr($mclResponse, 0, 5)) === false);
+check('minecraft-legacy framing complete', $mcl->isResponseComplete($mclResponse) === true);
+check('minecraft-legacy request is FE01', $mcl->initialStep($mclServer)['packet'] === "\xFE\x01");
+// beta 1.3 payload: motd § players § max (no leading §1)
+$betaPayload = $toUtf16Be("A Beta Server\xC2\xA73\xC2\xA710");
+$betaResponse = "\xFF" . pack('n', strlen($betaPayload) / 2) . $betaPayload;
+$betaParsed = $mcl->parse($mclServer, [['tag' => 'ping', 'request' => '', 'response' => $betaResponse]]);
+check('minecraft-legacy beta motd parsed', $betaParsed['name'] === 'A Beta Server');
+check('minecraft-legacy beta players parsed', $betaParsed['players'] === 3 && $betaParsed['max_players'] === 10);
 
 echo "\n" . ($failures === 0 ? "All {$passed} checks passed.\n" : "{$failures} of " . ($passed + $failures) . " checks FAILED.\n");
 exit($failures === 0 ? 0 : 1);

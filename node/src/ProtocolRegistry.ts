@@ -2,6 +2,7 @@ import type { ProtocolInterface } from './protocol/ProtocolInterface.js';
 import { Source } from './protocol/Source.js';
 import { Minecraft } from './protocol/Minecraft.js';
 import { Bedrock } from './protocol/Bedrock.js';
+import { MinecraftLegacy } from './protocol/MinecraftLegacy.js';
 import { Palworld } from './protocol/Palworld.js';
 import { FiveM } from './protocol/FiveM.js';
 import { Quake2 } from './protocol/Quake2.js';
@@ -35,6 +36,7 @@ export class ProtocolRegistry {
     [Minecraft.protocolName(), () => new Minecraft()],
     [Bedrock.protocolName(), () => new Bedrock()],
     ['minecraft-bedrock', () => new Bedrock()],
+    [MinecraftLegacy.protocolName(), () => new MinecraftLegacy()],
     [Palworld.protocolName(), () => new Palworld()],
     ['palworld-info', () => new Palworld(false)],
     [FiveM.protocolName(), () => new FiveM()],
