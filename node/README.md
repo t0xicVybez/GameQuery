@@ -34,6 +34,11 @@ for (const r of await gq.process()) {
 `process()` queries every server concurrently and resolves one `Result` per
 server, in order — online or not.
 
+> **Note on the timeout unit:** this Node constructor takes **milliseconds**
+> (`2000` = 2s), following Node convention. The PHP library's constructor takes
+> **seconds** (`2.0`). The defaults match (2s); only the units of an explicit
+> value differ between the two ports.
+
 ## CLI
 
 ```bash

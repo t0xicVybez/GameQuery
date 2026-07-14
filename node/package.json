@@ -9,17 +9,28 @@
     "gamequery": "./dist/bin/gamequery.js"
   },
   "files": ["dist", "README.md"],
+  "sideEffects": false,
   "engines": {
     "node": ">=18"
   },
   "scripts": {
     "build": "tsc",
     "test": "tsc && node dist/tests/smoke.test.js",
+    "test:integration": "tsc && node dist/tests/integration.test.js",
     "prepublishOnly": "npm run build"
   },
   "keywords": ["game-server", "query", "a2s", "source", "minecraft", "steam", "gamedig", "status"],
   "author": "Cory (t0xicVybez)",
   "license": "MIT",
+  "homepage": "https://github.com/t0xicVybez/GameQuery/tree/main/node",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/t0xicVybez/GameQuery.git",
+    "directory": "node"
+  },
+  "bugs": {
+    "url": "https://github.com/t0xicVybez/GameQuery/issues"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0"

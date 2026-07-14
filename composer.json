@@ -3,19 +3,42 @@
     "description": "A dependency-free PHP library for querying multiplayer game server status (players, map, ping, rules) over UDP/TCP, with concurrent multi-server polling.",
     "type": "library",
     "license": "MIT",
+    "keywords": [
+        "game-server",
+        "query",
+        "a2s",
+        "source",
+        "steam",
+        "minecraft",
+        "gamedig",
+        "server-status",
+        "udp",
+        "gameserver"
+    ],
+    "homepage": "https://github.com/t0xicVybez/GameQuery",
     "authors": [
         {
             "name": "Cory",
             "homepage": "https://github.com/t0xicVybez"
         }
     ],
+    "support": {
+        "issues": "https://github.com/t0xicVybez/GameQuery/issues",
+        "source": "https://github.com/t0xicVybez/GameQuery"
+    },
     "require": {
-        "php": ">=8.0"
+        "php": ">=8.1"
     },
     "autoload": {
         "psr-4": {
             "GameQuery\\": "src/"
         }
+    },
+    "bin": [
+        "bin/gamequery"
+    ],
+    "scripts": {
+        "test": "php tests/smoke_test.php"
     },
     "minimum-stability": "stable"
 }

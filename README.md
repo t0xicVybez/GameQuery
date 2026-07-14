@@ -5,9 +5,10 @@ A dependency-free PHP library for querying multiplayer game server status
 servers concurrently.
 
 Built by Cory ([@t0xicVybez](https://github.com/t0xicVybez)). No external
-libraries required; runs on plain PHP 8+ with core streams, so it drops
+libraries required; runs on plain PHP 8.1+ with core streams, so it drops
 into a shared PHP webhost as easily as it runs standalone on a VPS next to
-[ArkenBot](https://github.com/t0xicVybez/ArkenBot).
+[ArkenBot](https://github.com/t0xicVybez/ArkenBot). A dependency-free
+Node/TypeScript port with the same protocols and API lives in [`node/`](node/).
 
 ## Why this exists
 
@@ -94,6 +95,36 @@ port or adaptation of any existing library's code.
 - **CLI + JSON**, for calling from a non-PHP process (`bin/gamequery`) —
   built specifically so ArkenBot's Node/TypeScript side can shell out to
   it instead of needing a PHP runtime embedded in the bot.
+
+## Supported protocols at a glance
+
+**21 protocol families / 30 registered keys**, identical across the PHP and
+Node ports. Aliases and variants (e.g. `source-players`, `palworld-info`) are
+noted where they exist; see the detailed list above for what each covers.
+
+| Key | Family / games | Transport |
+|-----|----------------|-----------|
+| `source` (`source-players`, `source-full`) | Source / A2S — CS2, TF2, Rust, GMod, most Steamworks games | UDP |
+| `minecraft` | Minecraft: Java Edition (modern) | TCP |
+| `minecraft-legacy` | Minecraft: Java Edition (≤1.6 ping) | TCP |
+| `bedrock` (`minecraft-bedrock`) | Minecraft: Bedrock Edition (RakNet) | UDP |
+| `fivem` (`fivem-info`) | FiveM / CFX (GTA V multiplayer) | TCP/HTTP |
+| `palworld` (`palworld-info`) | Palworld REST API | TCP/HTTP |
+| `quakeworld` (`quake1`) | QuakeWorld / Quake 1 | UDP |
+| `quake2` | id Tech 2 / Quake 2 | UDP |
+| `quake3` | id Tech 3 — Quake 3, CoD 1/2/4, OpenArena, Xonotic, ET | UDP |
+| `gamespy1` | GameSpy 1 — Unreal, early UT, older titles | UDP |
+| `gamespy2` | GameSpy 2 — Battlefield 1942/Vietnam, Halo, UT2004 | UDP |
+| `gamespy3` | GameSpy 3 — Crysis, later GameSpy titles | UDP |
+| `unreal2` (`unreal2-info`) | Unreal Engine 2 — UT2003/2004, Killing Floor | UDP |
+| `doom3` | id Tech 4 — Doom 3, Quake 4, ET: Quake Wars | UDP |
+| `ase` | All-Seeing Eye — Multi Theft Auto (MTA:SA) | UDP |
+| `mumble` | Mumble / Murmur voice servers | UDP |
+| `teamspeak3` | TeamSpeak 3 / TeaSpeak (ServerQuery) | TCP |
+| `frostbite` | Battlefield 3/4, Bad Company 2, Medal of Honor | TCP |
+| `assettocorsa` | Assetto Corsa (HTTP `/INFO`) | TCP/HTTP |
+| `terraria` | Terraria via TShock REST | TCP/HTTP |
+| `samp` (`openmp`, `samp-info`) | SA-MP / open.mp (GTA: San Andreas) | UDP |
 
 ## Installation
 
@@ -275,22 +306,35 @@ no resolution cost.
 ## Testing
 
 ```bash
-php tests/smoke_test.php
+php tests/smoke_test.php     # PHP unit suite (no network)
+php tests/integration.php    # live check against real servers (edit the list)
+
+cd node && npm test          # TS unit suite (tsc build + run)
+cd node && npm run test:integration
 ```
 
-Dependency-free assertions against hand-built, known-good protocol byte
-sequences (no live server needed) — binary buffer round-tripping, A2S
-packet parsing, the challenge-number hand-off between query steps,
-Minecraft's length-prefixed JSON framing, and Palworld's HTTP request
-building / auth-error handling / missing-credential safety. All 30 checks
-pass as of this writing. The library has also been exercised end-to-end
-against a local fake UDP A2S server (full challenge/response player query
-flow), a fake Palworld REST server (both the keep-alive happy path and a
-non-keep-alive one to confirm graceful degradation, plus wrong-password
-and missing-password paths), a "black hole" UDP endpoint to confirm
-timeout/retry timing lands where expected, and a batch of 20 responsive +
-5 unresponsive servers to confirm the whole batch completes in one
-timeout window rather than scaling with server count.
+The unit suites are dependency-free assertions against hand-built, known-good
+protocol byte sequences (no live server needed) — binary buffer round-tripping,
+A2S packet parsing, the challenge-number hand-off between query steps,
+Minecraft's length-prefixed JSON framing, Palworld's HTTP auth handling, and a
+crafted-packet case for every protocol. Both suites must be all-green (PHP 151
+checks, TS 77 as of this writing).
+
+`tests/integration.php` and `node/src/tests/integration.test.ts` are separate,
+network-dependent diagnostics: they query a small list of real public servers
+and print a table (they never fail the process on an offline server, and are
+not part of CI). Point them at your own servers to smoke-test a protocol end to
+end.
+
+The library has also been exercised against local fake servers — a UDP A2S
+server (full challenge/response flow), a Palworld REST server (keep-alive and
+non-keep-alive paths, plus wrong/missing-password handling), a "black hole" UDP
+endpoint to confirm timeout/retry timing, and a batch of 20 responsive + 5
+unresponsive servers to confirm the whole batch completes in one timeout window
+rather than scaling with server count.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how the PHP and Node ports stay in
+lockstep and how to add a protocol to both.
 
 ## License
 
