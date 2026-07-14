@@ -15,6 +15,15 @@ final class Server
     public readonly int $port;
     public readonly string $protocol;
 
+    /**
+     * The host resolved to a numeric IP, when a protocol needs the server's
+     * address inside its own packet payload (SA-MP, for one). Populated by the
+     * transport layer for protocols that opt in via
+     * ProtocolInterface::requiresAddressResolution(); null otherwise. Read it
+     * through address(), which falls back to host.
+     */
+    public readonly ?string $resolvedIp;
+
     /** Arbitrary caller-supplied tag (e.g. a DB id or Discord channel id) echoed back in the Result. */
     public readonly mixed $id;
 
@@ -30,7 +39,7 @@ final class Server
      */
     public readonly array $options;
 
-    public function __construct(string $protocol, string $host, int $port, mixed $id = null, array $options = [])
+    public function __construct(string $protocol, string $host, int $port, mixed $id = null, array $options = [], ?string $resolvedIp = null)
     {
         if ($port < 1 || $port > 65535) {
             throw new GameQueryException("Invalid port: {$port}");
@@ -41,6 +50,19 @@ final class Server
         $this->port = $port;
         $this->id = $id;
         $this->options = $options;
+        $this->resolvedIp = $resolvedIp;
+    }
+
+    /** Return a copy with the resolved numeric IP set (host and everything else unchanged). */
+    public function withResolvedIp(string $ip): self
+    {
+        return new self($this->protocol, $this->host, $this->port, $this->id, $this->options, $ip);
+    }
+
+    /** The numeric IP for protocols that embed the address in their payload; falls back to host. */
+    public function address(): string
+    {
+        return $this->resolvedIp ?? $this->host;
     }
 
     /** Convenience factory for the common "host:port" shorthand. */

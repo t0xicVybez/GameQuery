@@ -79,6 +79,10 @@ port or adaptation of any existing library's code.
     voice port as `options['voicePort']`).
   - **Terraria** (`terraria`) — TShock-modded servers via their REST API
     (pass the REST port, default 7878, and a token as `options['token']`).
+  - **SA-MP / open.mp** (`samp`, alias `openmp`; `samp-info` skips the player
+    list) — GTA: San Andreas multiplayer. Its query embeds the server's own IP
+    for anti-spoofing, so the host is resolved to a numeric address first (see
+    "Address resolution" below). Default port 7777.
 - **Works standalone or via Composer.** `autoload.php` for a plain FTP
   drop-in on a shared host; `composer.json` if you'd rather pull it in as
   a package.
@@ -213,6 +217,17 @@ code at all.
 
 No changes to `SocketManager` or `QuerySession` are ever needed for a new
 protocol — that's the whole point of the split.
+
+### Address resolution
+
+A few protocols (SA-MP/open.mp) put the server's own numeric IP inside their
+request packet for anti-spoofing. Such a protocol overrides
+`requiresAddressResolution(): bool` to return `true`; the transport layer then
+resolves the host to an IPv4 address before `initialStep()` runs and exposes it
+via `$server->address()` (which otherwise just returns `host`). Build your
+packet from `$server->address()` rather than `$server->host` and it works
+whether the caller passed an IP or a DNS name. Protocols that don't opt in pay
+no resolution cost.
 
 ## Known limitations (honest, not marketing copy)
 

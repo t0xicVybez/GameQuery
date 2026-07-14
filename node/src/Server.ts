@@ -6,7 +6,25 @@ export class Server {
     public readonly port: number,
     public readonly id: unknown = null,
     public readonly options: Record<string, unknown> = {},
+    /**
+     * The host resolved to a numeric IP, when a protocol needs the server's
+     * address inside its own packet payload (SA-MP, for one). Populated by the
+     * transport layer for protocols that opt in via
+     * ProtocolInterface.requiresAddressResolution(); null otherwise. Read it
+     * through address(), which falls back to host.
+     */
+    public readonly resolvedIp: string | null = null,
   ) {}
+
+  /** Return a copy with the resolved numeric IP set (host and everything else unchanged). */
+  withResolvedIp(ip: string): Server {
+    return new Server(this.protocol, this.host, this.port, this.id, this.options, ip);
+  }
+
+  /** The numeric IP for protocols that embed the address in their payload; falls back to host. */
+  address(): string {
+    return this.resolvedIp ?? this.host;
+  }
 
   /** Parse a `host:port` string into a Server. */
   static fromAddress(

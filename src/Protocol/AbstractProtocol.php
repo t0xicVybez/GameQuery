@@ -42,4 +42,15 @@ abstract class AbstractProtocol implements ProtocolInterface
     {
         return true;
     }
+
+    /**
+     * Default: false. Protocols that embed the server's own numeric IP inside
+     * their request payload (SA-MP, for one) override this to true, and the
+     * transport layer resolves the host to an IP and exposes it via
+     * Server::address() before initialStep() runs.
+     */
+    public function requiresAddressResolution(): bool
+    {
+        return false;
+    }
 }

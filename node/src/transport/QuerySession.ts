@@ -1,5 +1,6 @@
 import dgram from 'node:dgram';
 import net from 'node:net';
+import { lookup } from 'node:dns/promises';
 import { Result } from '../Result.js';
 import type { Server } from '../Server.js';
 import type { ProtocolInterface } from '../protocol/ProtocolInterface.js';
@@ -30,6 +31,13 @@ export class QuerySession {
   private error: string | null = null;
   private resolveFn: ((r: Result) => void) | null = null;
 
+  /**
+   * The server passed to the protocol — identical to `server` unless the
+   * protocol opts into address resolution, in which case its host has been
+   * resolved to a numeric IP (see Server.withResolvedIp).
+   */
+  private activeServer: Server;
+
   constructor(
     private readonly server: Server,
     private readonly protocol: ProtocolInterface,
@@ -37,30 +45,49 @@ export class QuerySession {
     private readonly maxRetries: number,
   ) {
     this.retriesLeft = maxRetries;
+    this.activeServer = server;
   }
 
   run(): Promise<Result> {
     return new Promise<Result>((resolve) => {
       this.resolveFn = resolve;
-
-      let step;
-      try {
-        step = this.protocol.initialStep(this.server);
-      } catch (err) {
-        // A protocol can reject up front (e.g. Palworld's missing password).
-        // Fail just this server, not the batch.
-        this.finish(false, err instanceof Error ? err.message : String(err));
-        return;
-      }
-      this.currentTag = step.tag;
-      this.currentPacket = step.packet;
-
-      if (this.protocol.transport() === 'udp') {
-        this.openUdp();
-      } else {
-        this.openTcp();
-      }
+      // Resolution (only for protocols that opt in) is async, so kick off the
+      // conversation from a helper rather than blocking the executor.
+      void this.begin();
     });
+  }
+
+  private async begin(): Promise<void> {
+    // Protocols that embed the server address in their payload need the host
+    // resolved to a numeric IP before initialStep().
+    if (this.protocol.requiresAddressResolution()) {
+      try {
+        const { address } = await lookup(this.server.host, { family: 4 });
+        this.activeServer = this.server.withResolvedIp(address);
+      } catch {
+        // Resolution failed; leave activeServer as host. The query will most
+        // likely fail downstream and be reported offline, which is correct.
+      }
+      if (this.done) return; // a timeout may have fired while we were resolving
+    }
+
+    let step;
+    try {
+      step = this.protocol.initialStep(this.activeServer);
+    } catch (err) {
+      // A protocol can reject up front (e.g. Palworld's missing password).
+      // Fail just this server, not the batch.
+      this.finish(false, err instanceof Error ? err.message : String(err));
+      return;
+    }
+    this.currentTag = step.tag;
+    this.currentPacket = step.packet;
+
+    if (this.protocol.transport() === 'udp') {
+      this.openUdp();
+    } else {
+      this.openTcp();
+    }
   }
 
   private isUdp(): boolean {
@@ -120,7 +147,7 @@ export class QuerySession {
 
     let next;
     try {
-      next = this.protocol.nextStep(this.server, this.history);
+      next = this.protocol.nextStep(this.activeServer, this.history);
     } catch (err) {
       this.finish(true, err instanceof Error ? err.message : String(err));
       return;
@@ -185,7 +212,7 @@ export class QuerySession {
     let data: Record<string, unknown> = {};
     if (this.online) {
       try {
-        data = this.protocol.parse(this.server, this.history);
+        data = this.protocol.parse(this.activeServer, this.history);
       } catch (err) {
         this.error = err instanceof Error ? err.message : String(err);
       }

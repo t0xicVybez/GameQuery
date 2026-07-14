@@ -17,6 +17,7 @@ import { Frostbite } from './protocol/Frostbite.js';
 import { AssettoCorsa } from './protocol/AssettoCorsa.js';
 import { TeamSpeak3 } from './protocol/TeamSpeak3.js';
 import { Terraria } from './protocol/Terraria.js';
+import { Samp } from './protocol/Samp.js';
 
 export type ProtocolFactory = () => ProtocolInterface;
 
@@ -51,6 +52,9 @@ export class ProtocolRegistry {
     [AssettoCorsa.protocolName(), () => new AssettoCorsa()],
     [TeamSpeak3.protocolName(), () => new TeamSpeak3()],
     [Terraria.protocolName(), () => new Terraria()],
+    [Samp.protocolName(), () => new Samp()],
+    ['samp-info', () => new Samp(false)],
+    ['openmp', () => new Samp()],
   ]);
 
   register(name: string, factory: ProtocolFactory): void {

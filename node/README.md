@@ -50,8 +50,12 @@ usage error.
 
 `source` (+ `-players`/`-full`), `minecraft`, `bedrock`, `fivem`, `palworld`,
 `quake2`, `quake3`, `gamespy1`, `gamespy2`, `gamespy3`, `unreal2`, `doom3`,
-`ase`, `mumble`, `frostbite`, `assettocorsa`, `teamspeak3`, `terraria`. See the
-[main README](../README.md) for the games each covers.
+`ase`, `mumble`, `frostbite`, `assettocorsa`, `teamspeak3`, `terraria`, `samp`
+(alias `openmp`). See the [main README](../README.md) for the games each covers.
+
+Protocols that embed the server's address in their payload (SA-MP/open.mp)
+override `requiresAddressResolution()`; the transport resolves the host to an
+IPv4 address before `initialStep()` and exposes it via `server.address()`.
 
 ## Develop
 

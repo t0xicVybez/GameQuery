@@ -26,6 +26,13 @@ final class QuerySession
     private string $currentPacket = '';
     private string $readBuffer = '';
 
+    /**
+     * The server passed to the protocol -- identical to $server unless the
+     * protocol opts into address resolution, in which case its host has been
+     * resolved to a numeric IP (see Server::withResolvedIp).
+     */
+    private Server $activeServer;
+
     private bool $connecting = false;
     private bool $done = false;
     private bool $online = false;
@@ -43,12 +50,20 @@ final class QuerySession
         private readonly int $maxRetries,
     ) {
         $this->retriesLeft = $maxRetries;
+        $this->activeServer = $server;
     }
 
     public function open(): void
     {
+        // Protocols that embed the server address in their payload need the
+        // host resolved to a numeric IP up front. gethostbyname() returns the
+        // input unchanged for an IP or on failure, which is the right fallback.
+        if ($this->protocol->requiresAddressResolution()) {
+            $this->activeServer = $this->server->withResolvedIp(gethostbyname($this->server->host));
+        }
+
         try {
-            $step = $this->protocol->initialStep($this->server);
+            $step = $this->protocol->initialStep($this->activeServer);
         } catch (\Throwable $e) {
             // A protocol can throw here for a config problem it can detect
             // up front (Palworld's missing-password check, for example).
@@ -164,7 +179,7 @@ final class QuerySession
 
         $next = null;
         try {
-            $next = $this->protocol->nextStep($this->server, $this->history);
+            $next = $this->protocol->nextStep($this->activeServer, $this->history);
         } catch (\Throwable $e) {
             $this->finish(online: true, error: $e->getMessage());
             return;
@@ -264,7 +279,7 @@ final class QuerySession
             ? round(($this->firstResponseTime - $this->firstSendTime) * 1000, 2)
             : 0.0;
 
-        $data = $this->online ? $this->protocol->parse($this->server, $this->history) : [];
+        $data = $this->online ? $this->protocol->parse($this->activeServer, $this->history) : [];
 
         return new Result($this->server, $this->online, $pingMs, $data, $this->error);
     }

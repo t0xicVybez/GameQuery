@@ -20,6 +20,7 @@ use GameQuery\Protocol\Palworld;
 use GameQuery\Protocol\ProtocolInterface;
 use GameQuery\Protocol\Quake2;
 use GameQuery\Protocol\Quake3;
+use GameQuery\Protocol\Samp;
 use GameQuery\Protocol\Source;
 use GameQuery\Protocol\TeamSpeak3;
 use GameQuery\Protocol\Terraria;
@@ -66,6 +67,9 @@ final class ProtocolRegistry
             AssettoCorsa::name() => static fn () => new AssettoCorsa(),
             TeamSpeak3::name() => static fn () => new TeamSpeak3(),
             Terraria::name() => static fn () => new Terraria(),
+            Samp::name() => static fn () => new Samp(),
+            'samp-info' => static fn () => new Samp(includePlayers: false),
+            'openmp' => static fn () => new Samp(),
         ];
     }
 

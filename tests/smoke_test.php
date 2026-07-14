@@ -31,6 +31,7 @@ use GameQuery\Protocol\Frostbite;
 use GameQuery\Protocol\AssettoCorsa;
 use GameQuery\Protocol\TeamSpeak3;
 use GameQuery\Protocol\Terraria;
+use GameQuery\Protocol\Samp;
 use GameQuery\Exception\GameQueryException;
 use GameQuery\Protocol\Source;
 use GameQuery\Server;
@@ -446,6 +447,43 @@ try {
     $trThrew = true;
 }
 check('terraria missing token rejected', $trThrew === true);
+
+echo "\nSA-MP / open.mp parsing\n";
+$samp = new Samp();
+$sampServer = Server::fromAddress('samp', '127.0.0.1:7777');
+$sampHeader = static fn (string $op): string => 'SAMP' . chr(127) . chr(0) . chr(0) . chr(1) . pack('v', 7777) . $op;
+$sampName = 'Los Santos Roleplay';
+$sampGm = 'Freeroam';
+$sampLang = 'English';
+$sampInfo = $sampHeader('i')
+    . chr(0)                                                 // password: no
+    . pack('v', 50)                                          // players
+    . pack('v', 100)                                         // max players
+    . pack('V', strlen($sampName)) . $sampName
+    . pack('V', strlen($sampGm)) . $sampGm
+    . pack('V', strlen($sampLang)) . $sampLang;
+$sampClients = $sampHeader('c') . pack('v', 2)
+    . chr(strlen('Alice')) . 'Alice' . pack('V', 10)
+    . chr(strlen('Bob')) . 'Bob' . pack('V', 20);
+$sampParsed = $samp->parse($sampServer, [
+    ['tag' => 'info', 'request' => '', 'response' => $sampInfo],
+    ['tag' => 'players', 'request' => '', 'response' => $sampClients],
+]);
+check('samp name parsed', $sampParsed['name'] === 'Los Santos Roleplay');
+check('samp gametype parsed', $sampParsed['gametype'] === 'Freeroam');
+check('samp language parsed', $sampParsed['language'] === 'English');
+check('samp players/max parsed', $sampParsed['players'] === 50 && $sampParsed['max_players'] === 100);
+check('samp password flag parsed', $sampParsed['password'] === false);
+check('samp client list parsed', $sampParsed['players_list'] === ['Alice', 'Bob']);
+check('samp requires address resolution', $samp->requiresAddressResolution() === true);
+$sampReq = $samp->initialStep($sampServer)['packet'];
+check('samp request has SAMP header', substr($sampReq, 0, 4) === 'SAMP');
+check('samp request embeds ip octets', substr($sampReq, 4, 4) === chr(127) . chr(0) . chr(0) . chr(1));
+check('samp request embeds LE port', substr($sampReq, 8, 2) === pack('v', 7777));
+check('samp request carries opcode', substr($sampReq, 10, 1) === 'i');
+// A resolved host feeds its numeric IP into the packet (address() fallback path).
+$sampResolved = Server::fromAddress('samp', 'play.example.com:7777')->withResolvedIp('203.0.113.5');
+check('samp uses resolved ip in packet', substr($samp->initialStep($sampResolved)['packet'], 4, 4) === chr(203) . chr(0) . chr(113) . chr(5));
 
 echo "\n" . ($failures === 0 ? "All {$passed} checks passed.\n" : "{$failures} of " . ($passed + $failures) . " checks FAILED.\n");
 exit($failures === 0 ? 0 : 1);

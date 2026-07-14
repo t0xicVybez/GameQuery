@@ -64,4 +64,13 @@ interface ProtocolInterface
      * themselves to know when to stop reading and hand off to parse().
      */
     public function isResponseComplete(string $buffer): bool;
+
+    /**
+     * Whether this protocol needs the server's host resolved to a numeric IP
+     * before initialStep() -- true only for protocols that embed the server
+     * address in their own request payload (SA-MP). When true, the transport
+     * layer resolves the host and exposes it via Server::address().
+     * AbstractProtocol returns false.
+     */
+    public function requiresAddressResolution(): bool;
 }

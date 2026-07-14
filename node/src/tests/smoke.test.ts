@@ -21,6 +21,7 @@ import { Frostbite } from '../protocol/Frostbite.js';
 import { AssettoCorsa } from '../protocol/AssettoCorsa.js';
 import { TeamSpeak3 } from '../protocol/TeamSpeak3.js';
 import { Terraria } from '../protocol/Terraria.js';
+import { Samp } from '../protocol/Samp.js';
 import type { HistoryEntry } from '../types.js';
 
 let passed = 0;
@@ -254,6 +255,58 @@ try {
   trThrew = true;
 }
 check('terraria missing token rejected', trThrew === true);
+
+console.log('\nSA-MP / open.mp');
+const sampHeader = (op: string): Buffer =>
+  Buffer.concat([Buffer.from('SAMP', 'latin1'), Buffer.from([127, 0, 0, 1]), leU16(7777), Buffer.from(op, 'latin1')]);
+function leU16(n: number): Buffer {
+  const b = Buffer.alloc(2);
+  b.writeUInt16LE(n, 0);
+  return b;
+}
+function leU32(n: number): Buffer {
+  const b = Buffer.alloc(4);
+  b.writeUInt32LE(n, 0);
+  return b;
+}
+function sampStr32(s: string): Buffer {
+  return Buffer.concat([leU32(s.length), Buffer.from(s, 'latin1')]);
+}
+const sampInfo = Buffer.concat([
+  sampHeader('i'),
+  Buffer.from([0]), // password: no
+  leU16(50),
+  leU16(100),
+  sampStr32('Los Santos Roleplay'),
+  sampStr32('Freeroam'),
+  sampStr32('English'),
+]);
+const sampClients = Buffer.concat([
+  sampHeader('c'),
+  leU16(2),
+  Buffer.from([5]),
+  Buffer.from('Alice', 'latin1'),
+  leU32(10),
+  Buffer.from([3]),
+  Buffer.from('Bob', 'latin1'),
+  leU32(20),
+]);
+const samp = new Samp();
+const sampServer = srv('samp', '127.0.0.1:7777');
+const sampp = samp.parse(sampServer, [
+  { tag: 'info', request: Buffer.alloc(0), response: sampInfo },
+  { tag: 'players', request: Buffer.alloc(0), response: sampClients },
+]);
+check('samp name/gametype/language parsed', sampp.name === 'Los Santos Roleplay' && sampp.gametype === 'Freeroam' && sampp.language === 'English');
+check('samp players/max/password parsed', sampp.players === 50 && sampp.max_players === 100 && sampp.password === false);
+check('samp client list parsed', JSON.stringify(sampp.players_list) === JSON.stringify(['Alice', 'Bob']));
+check('samp requires address resolution', samp.requiresAddressResolution() === true);
+const sampReq = samp.initialStep(sampServer).packet;
+check('samp request has SAMP header + opcode', sampReq.subarray(0, 4).toString('latin1') === 'SAMP' && sampReq[10] === 0x69);
+check('samp request embeds ip octets', JSON.stringify([...sampReq.subarray(4, 8)]) === JSON.stringify([127, 0, 0, 1]));
+check('samp request embeds LE port', sampReq.readUInt16LE(8) === 7777);
+const sampResolved = Server.fromAddress('samp', 'play.example.com:7777').withResolvedIp('203.0.113.5');
+check('samp uses resolved ip in packet', JSON.stringify([...samp.initialStep(sampResolved).packet.subarray(4, 8)]) === JSON.stringify([203, 0, 113, 5]));
 
 console.log('\n' + (failures === 0 ? `All ${passed} checks passed.` : `${failures} of ${passed + failures} checks FAILED.`));
 process.exit(failures === 0 ? 0 : 1);
