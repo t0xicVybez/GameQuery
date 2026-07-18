@@ -100,6 +100,18 @@ check('server_type decoded', $parsed['server_type'] === 'dedicated');
 check('environment decoded', $parsed['environment'] === 'linux');
 check('vac_secured decoded', $parsed['vac_secured'] === true);
 
+// "The Ship" (app_id 2400) inserts mode/witnesses/duration before the version.
+$shipPacket = "\xFF\xFF\xFF\xFF" . "\x49" . "\x07"
+    . "Ship Server\x00" . "ship_lobby\x00" . "ship\x00" . "The Ship\x00"
+    . pack('v', 2400)                     // app id 2400 -> The Ship
+    . "\x05" . "\x08" . "\x00" . "d" . "w" . "\x00" . "\x00"
+    . "\x02" . "\x03" . "\x04"            // ship mode / witnesses / duration
+    . "1.0.0.4\x00";
+$ship = $source->parse($server, [['tag' => 'info', 'request' => '', 'response' => $shipPacket]]);
+check('the ship: app_id parsed', $ship['app_id'] === 2400);
+check('the ship: extra 3 bytes consumed', $ship['ship_mode'] === 2 && $ship['ship_witnesses'] === 3 && $ship['ship_duration'] === 4);
+check('the ship: version still aligned after extra bytes', $ship['version'] === '1.0.0.4');
+
 echo "\nSource challenge extraction drives the player-query step correctly\n";
 
 $challengeResponse = "\xFF\xFF\xFF\xFF" . "A" . pack('V', 0xDEADBEEF);

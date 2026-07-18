@@ -178,9 +178,14 @@ final class Source extends AbstractProtocol
             'vac_secured' => (bool) $reader->readUInt8(),
         ];
 
-        // "The Ship" has three extra bytes here (game mode/witnesses/duration)
-        // that no other game sends. Not commonly relevant; skip gracefully if present isn't detectable
-        // without appid 2400, so we don't guess -- documented limitation.
+        // "The Ship" (app_id 2400) is the one A2S game that inserts three extra
+        // bytes here -- game mode, witness count, and round duration -- before
+        // the version string. Consume them so the rest of the payload stays aligned.
+        if ($data['app_id'] === 2400) {
+            $data['ship_mode'] = $reader->readUInt8();
+            $data['ship_witnesses'] = $reader->readUInt8();
+            $data['ship_duration'] = $reader->readUInt8();
+        }
 
         if (!$reader->eof()) {
             $data['version'] = $reader->readCString();

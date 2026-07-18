@@ -75,6 +75,19 @@ const retryHist: HistoryEntry[] = [
 ];
 check('info parsed from the challenge-completed reply', new Source().parse(srv('source', 'x:1'), retryHist).name === 'My CS2 Server');
 
+// "The Ship" (app_id 2400) inserts mode/witnesses/duration before the version.
+const shipInfo = Buffer.concat([
+  Buffer.from([0xff, 0xff, 0xff, 0xff, 0x49, 7]),
+  Buffer.from('Ship Server\x00ship_lobby\x00ship\x00The Ship\x00', 'utf8'),
+  Buffer.from([0x60, 0x09, 5, 8, 0, 100, 119, 0, 0]), // appid 2400, players 5, max 8, bots 0, d, w, pw 0, vac 0
+  Buffer.from([2, 3, 4]),                              // ship mode / witnesses / duration
+  Buffer.from('1.0.0.4\x00', 'utf8'),
+]);
+const ship = new Source().parse(srv('source', 'x:1'), hist('info', shipInfo));
+check('the ship: app_id parsed', ship.app_id === 2400);
+check('the ship: extra 3 bytes consumed', ship.ship_mode === 2 && ship.ship_witnesses === 3 && ship.ship_duration === 4);
+check('the ship: version still aligned after extra bytes', ship.version === '1.0.0.4');
+
 console.log('\nMinecraft framing + JSON');
 const mcJson = JSON.stringify({ description: { text: 'A Minecraft Server' }, version: { name: '1.21', protocol: 767 }, players: { online: 5, max: 20, sample: [{ name: 'Steve' }] } });
 const mcInner = new ByteWriter().writeVarInt(0x00).writeMcString(mcJson).toBuffer();
