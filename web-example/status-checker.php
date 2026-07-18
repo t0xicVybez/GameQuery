@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($error === null) {
                     try {
-                        $gq = new GameQuery(timeoutSeconds: 2.5, retries: 1);
+                        $gq = new GameQuery(timeoutMs: 2500, retries: 1);
                         $gq->addServer($protocol, "{$resolvedIp}:{$port}", options: $options);
                         [$result] = $gq->process();
                     } catch (GameQueryException $e) {
