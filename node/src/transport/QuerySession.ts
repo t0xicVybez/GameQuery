@@ -2,6 +2,7 @@ import dgram from 'node:dgram';
 import net from 'node:net';
 import { lookup } from 'node:dns/promises';
 import { Result } from '../Result.js';
+import { ErrorCode, type ErrorCodeValue } from '../ErrorCode.js';
 import type { Server } from '../Server.js';
 import type { ProtocolInterface } from '../protocol/ProtocolInterface.js';
 import type { HistoryEntry } from '../types.js';
@@ -29,6 +30,7 @@ export class QuerySession {
   private done = false;
   private online = false;
   private error: string | null = null;
+  private errorCode: ErrorCodeValue | null = null;
   private resolveFn: ((r: Result) => void) | null = null;
 
   /**
@@ -77,7 +79,7 @@ export class QuerySession {
     } catch (err) {
       // A protocol can reject up front (e.g. Palworld's missing password).
       // Fail just this server, not the batch.
-      this.finish(false, err instanceof Error ? err.message : String(err));
+      this.finish(false, err instanceof Error ? err.message : String(err), ErrorCode.CONFIG_ERROR);
       return;
     }
     this.currentTag = step.tag;
@@ -99,10 +101,19 @@ export class QuerySession {
     const sock = dgram.createSocket(family);
     this.socket = sock;
     sock.on('message', (msg) => this.onData(msg));
-    sock.on('error', (err) => this.finishSoft(err.message));
-    this.firstSend = this.now();
+    sock.on('error', (err) => this.finishSoft(err.message, ErrorCode.UNREACHABLE));
+    // Connect the socket to the target so the kernel only delivers datagrams
+    // from that exact peer — mirrors the PHP port's connected udp:// socket and
+    // stops a stray or spoofed sender from being read as the reply. connect()
+    // also resolves the host, so send() below needs no address.
+    sock.connect(this.server.port, this.server.host, () => {
+      if (this.done) return;
+      this.firstSend = this.now();
+      this.arm();
+      this.sendCurrent();
+    });
+    // Cover a hung connect/DNS resolve with the same timeout budget.
     this.arm();
-    this.sendCurrent();
   }
 
   private openTcp(): void {
@@ -115,13 +126,13 @@ export class QuerySession {
       this.sendCurrent();
     });
     sock.on('data', (chunk) => this.onData(chunk));
-    sock.on('error', (err) => this.finishSoft(err.message));
+    sock.on('error', (err) => this.finishSoft(err.message, ErrorCode.UNREACHABLE));
     sock.on('close', () => {
       if (this.done) return;
       if (this.readBuffer.length > 0) {
         this.recordAndAdvance();
       } else {
-        this.finishSoft(this.history.length ? null : 'connection closed');
+        this.finishSoft(this.history.length ? null : 'connection closed', ErrorCode.CONNECTION_CLOSED);
       }
     });
     // Connect timeout is covered by arm() below; firstSend is re-set on 'connect'.
@@ -149,7 +160,7 @@ export class QuerySession {
     try {
       next = this.protocol.nextStep(this.activeServer, this.history);
     } catch (err) {
-      this.finish(true, err instanceof Error ? err.message : String(err));
+      this.finish(true, err instanceof Error ? err.message : String(err), ErrorCode.PROTOCOL_ERROR);
       return;
     }
 
@@ -169,8 +180,9 @@ export class QuerySession {
     if (this.socket === null) return;
     this.readBuffer = Buffer.alloc(0);
     if (this.isUdp()) {
-      (this.socket as dgram.Socket).send(this.currentPacket, this.server.port, this.server.host, (err) => {
-        if (err) this.finishSoft(this.history.length ? null : 'send failed');
+      // The socket is connect()ed, so send() takes no address.
+      (this.socket as dgram.Socket).send(this.currentPacket, (err) => {
+        if (err) this.finishSoft(this.history.length ? null : 'send failed', ErrorCode.UNREACHABLE);
       });
     } else {
       (this.socket as net.Socket).write(this.currentPacket);
@@ -193,18 +205,20 @@ export class QuerySession {
       }
       return;
     }
-    this.finish(this.history.length > 0, this.history.length ? null : 'timeout');
+    this.finish(this.history.length > 0, this.history.length ? null : 'timeout', this.history.length ? null : ErrorCode.TIMEOUT);
   }
 
-  private finishSoft(error: string | null): void {
-    this.finish(this.history.length > 0, this.history.length ? null : error);
+  private finishSoft(error: string | null, errorCode: ErrorCodeValue): void {
+    const offline = this.history.length === 0;
+    this.finish(this.history.length > 0, offline ? error : null, offline ? errorCode : null);
   }
 
-  private finish(online: boolean, error: string | null = null): void {
+  private finish(online: boolean, error: string | null = null, errorCode: ErrorCodeValue | null = null): void {
     if (this.done) return;
     this.done = true;
     this.online = online;
     this.error = error;
+    this.errorCode = errorCode;
     if (this.timer) clearTimeout(this.timer);
     this.closeSocket();
 
@@ -215,9 +229,16 @@ export class QuerySession {
         data = this.protocol.parse(this.activeServer, this.history);
       } catch (err) {
         this.error = err instanceof Error ? err.message : String(err);
+        this.errorCode = ErrorCode.PROTOCOL_ERROR;
+      }
+      // Surface an authentication rejection (e.g. wrong Palworld password) as a
+      // stable code even though a 401 still counts as "reachable".
+      if (data.auth_error === true && this.errorCode === null) {
+        this.error = 'authentication rejected';
+        this.errorCode = ErrorCode.AUTH_FAILED;
       }
     }
-    this.resolveFn?.(new Result(this.server, this.online, pingMs, data, this.error));
+    this.resolveFn?.(new Result(this.server, this.online, pingMs, data, this.error, this.errorCode));
   }
 
   private closeSocket(): void {

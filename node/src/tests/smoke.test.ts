@@ -24,6 +24,8 @@ import { Terraria } from '../protocol/Terraria.js';
 import { Samp } from '../protocol/Samp.js';
 import { QuakeWorld } from '../protocol/QuakeWorld.js';
 import { MinecraftLegacy } from '../protocol/MinecraftLegacy.js';
+import { Result } from '../Result.js';
+import { ErrorCode } from '../ErrorCode.js';
 import type { HistoryEntry } from '../types.js';
 
 let passed = 0;
@@ -372,6 +374,26 @@ check('minecraft-legacy request is FE01', mcl.initialStep(mclServer).packet.equa
 const betaResponse = mclHeader(toUtf16Be('A Beta Server§3§10'));
 const betap = mcl.parse(mclServer, hist('ping', betaResponse));
 check('minecraft-legacy beta motd/players parsed', betap.name === 'A Beta Server' && betap.players === 3 && betap.max_players === 10);
+
+console.log('\nResult API: normalized accessors, error codes, serializer parity');
+const taggedServer = new Server('source', '1.2.3.4', 27015, 'my-tag');
+check('server label uses id when present', taggedServer.label() === 'my-tag');
+check('server label falls back to host:port', new Server('source', '1.2.3.4', 27015).label() === '1.2.3.4:27015');
+
+const onlineResult = new Result(taggedServer, true, 42.5, {
+  name: 'Best Server', map: 'de_dust2', players: 12, max_players: 32,
+  players_list: [{ name: 'alice', score: 3 }, 'bob', { noname: 1 }],
+});
+check('result name() accessor', onlineResult.name() === 'Best Server');
+check('result map() accessor', onlineResult.map() === 'de_dust2');
+check('result players()/maxPlayers()', onlineResult.players() === 12 && onlineResult.maxPlayers() === 32);
+check('result playerNames() flattens objects and bare strings', JSON.stringify(onlineResult.playerNames()) === JSON.stringify(['alice', 'bob']));
+check('result toObject()/toArray() parity', JSON.stringify(onlineResult.toObject()) === JSON.stringify(onlineResult.toArray()));
+check('result serialization carries error_code key', 'error_code' in onlineResult.toObject());
+
+const offlineResult = new Result(taggedServer, false, 0, {}, 'timeout', ErrorCode.TIMEOUT);
+check('offline result carries a typed error code', offlineResult.errorCode === ErrorCode.TIMEOUT);
+check('offline accessors are null-safe', offlineResult.name() === null && offlineResult.players() === null && offlineResult.playerNames().length === 0);
 
 console.log('\n' + (failures === 0 ? `All ${passed} checks passed.` : `${failures} of ${passed + failures} checks FAILED.`));
 process.exit(failures === 0 ? 0 : 1);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GameQuery\Transport;
 
+use GameQuery\ErrorCode;
 use GameQuery\Protocol\ProtocolInterface;
 use GameQuery\Result;
 use GameQuery\Server;
@@ -37,6 +38,7 @@ final class QuerySession
     private bool $done = false;
     private bool $online = false;
     private ?string $error = null;
+    private ?string $errorCode = null;
 
     private float $firstSendTime = 0.0;
     private float $firstResponseTime = 0.0;
@@ -70,7 +72,7 @@ final class QuerySession
             // That's this one server's fault, not the whole batch's -- fail
             // just this session instead of letting the exception propagate
             // out of SocketManager::run() and take every other server with it.
-            $this->finish(online: false, error: $e->getMessage());
+            $this->finish(online: false, error: $e->getMessage(), errorCode: ErrorCode::CONFIG_ERROR);
             return;
         }
 
@@ -87,7 +89,7 @@ final class QuerySession
         $socket = @stream_socket_client($address, $errno, $errstr, $this->timeoutSeconds, $flags);
 
         if ($socket === false) {
-            $this->finish(online: false, error: $errstr !== '' ? $errstr : 'connection failed');
+            $this->finish(online: false, error: $errstr !== '' ? $errstr : 'connection failed', errorCode: ErrorCode::UNREACHABLE);
             return;
         }
 
@@ -144,7 +146,11 @@ final class QuerySession
             if ($this->readBuffer !== '') {
                 $this->recordResponseAndAdvance();
             } else {
-                $this->finish(online: !empty($this->history), error: $this->history === [] ? 'connection closed' : null);
+                $this->finish(
+                    online: !empty($this->history),
+                    error: $this->history === [] ? 'connection closed' : null,
+                    errorCode: $this->history === [] ? ErrorCode::CONNECTION_CLOSED : null,
+                );
             }
             return;
         }
@@ -181,7 +187,7 @@ final class QuerySession
         try {
             $next = $this->protocol->nextStep($this->activeServer, $this->history);
         } catch (\Throwable $e) {
-            $this->finish(online: true, error: $e->getMessage());
+            $this->finish(online: true, error: $e->getMessage(), errorCode: ErrorCode::PROTOCOL_ERROR);
             return;
         }
 
@@ -211,7 +217,11 @@ final class QuerySession
         $written = @fwrite($this->socket, $this->currentPacket);
 
         if ($written === false) {
-            $this->finish(online: !empty($this->history), error: $this->history === [] ? 'write failed' : null);
+            $this->finish(
+                online: !empty($this->history),
+                error: $this->history === [] ? 'write failed' : null,
+                errorCode: $this->history === [] ? ErrorCode::UNREACHABLE : null,
+            );
         }
     }
 
@@ -242,6 +252,7 @@ final class QuerySession
         $this->finish(
             online: !empty($this->history),
             error: $this->history === [] ? 'timeout' : null,
+            errorCode: $this->history === [] ? ErrorCode::TIMEOUT : null,
         );
     }
 
@@ -255,14 +266,16 @@ final class QuerySession
         $this->finish(
             online: !empty($this->history),
             error: $this->history === [] ? 'timeout' : null,
+            errorCode: $this->history === [] ? ErrorCode::TIMEOUT : null,
         );
     }
 
-    private function finish(bool $online, ?string $error = null): void
+    private function finish(bool $online, ?string $error = null, ?string $errorCode = null): void
     {
         $this->done = true;
         $this->online = $online;
         $this->error = $error;
+        $this->errorCode = $errorCode;
     }
 
     public function close(): void
@@ -279,8 +292,28 @@ final class QuerySession
             ? round(($this->firstResponseTime - $this->firstSendTime) * 1000, 2)
             : 0.0;
 
-        $data = $this->online ? $this->protocol->parse($this->activeServer, $this->history) : [];
+        $data = [];
+        $error = $this->error;
+        $errorCode = $this->errorCode;
 
-        return new Result($this->server, $this->online, $pingMs, $data, $this->error);
+        if ($this->online) {
+            try {
+                $data = $this->protocol->parse($this->activeServer, $this->history);
+            } catch (\Throwable $e) {
+                // A parse failure is this one server's problem, not the batch's --
+                // matches the Node port, which also traps parse() here.
+                $error = $e->getMessage();
+                $errorCode = ErrorCode::PROTOCOL_ERROR;
+            }
+
+            // Surface an authentication rejection (e.g. wrong Palworld password)
+            // as a stable code even though a 401 still counts as "reachable".
+            if (($data['auth_error'] ?? false) === true && $errorCode === null) {
+                $error = 'authentication rejected';
+                $errorCode = ErrorCode::AUTH_FAILED;
+            }
+        }
+
+        return new Result($this->server, $this->online, $pingMs, $data, $error, $errorCode);
     }
 }

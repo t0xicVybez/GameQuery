@@ -51,6 +51,21 @@ export class GameQuery {
     return manager.run(jobs);
   }
 
+  /**
+   * Query a single server and resolve its one Result — the common case without
+   * the addServer()/process() ceremony.
+   */
+  static async queryOne(
+    protocol: string,
+    address: string,
+    options: Record<string, unknown> = {},
+    config: { timeoutMs?: number; retries?: number } = {},
+  ): Promise<Result> {
+    const gq = new GameQuery(config.timeoutMs ?? 2000, config.retries ?? 1);
+    gq.addServer(protocol, address, null, options);
+    return (await gq.process())[0]!;
+  }
+
   reset(): this {
     this.servers = [];
     return this;

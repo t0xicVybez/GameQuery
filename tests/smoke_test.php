@@ -37,6 +37,8 @@ use GameQuery\Protocol\MinecraftLegacy;
 use GameQuery\Exception\GameQueryException;
 use GameQuery\Protocol\Source;
 use GameQuery\Server;
+use GameQuery\Result;
+use GameQuery\ErrorCode;
 
 $failures = 0;
 $passed = 0;
@@ -573,6 +575,27 @@ $betaResponse = "\xFF" . pack('n', strlen($betaPayload) / 2) . $betaPayload;
 $betaParsed = $mcl->parse($mclServer, [['tag' => 'ping', 'request' => '', 'response' => $betaResponse]]);
 check('minecraft-legacy beta motd parsed', $betaParsed['name'] === 'A Beta Server');
 check('minecraft-legacy beta players parsed', $betaParsed['players'] === 3 && $betaParsed['max_players'] === 10);
+
+echo "\nResult API: normalized accessors, error codes, serializer parity\n";
+
+$taggedServer = new Server('source', '1.2.3.4', 27015, id: 'my-tag');
+check('server label uses id when present', $taggedServer->label() === 'my-tag');
+check('server label falls back to host:port', (new Server('source', '1.2.3.4', 27015))->label() === '1.2.3.4:27015');
+
+$onlineResult = new Result($taggedServer, true, 42.5, [
+    'name' => 'Best Server', 'map' => 'de_dust2', 'players' => 12, 'max_players' => 32,
+    'players_list' => [['name' => 'alice', 'score' => 3], 'bob', ['noname' => 1]],
+]);
+check('result name() accessor', $onlineResult->name() === 'Best Server');
+check('result map() accessor', $onlineResult->map() === 'de_dust2');
+check('result players()/maxPlayers()', $onlineResult->players() === 12 && $onlineResult->maxPlayers() === 32);
+check('result playerNames() flattens objects and bare strings', $onlineResult->playerNames() === ['alice', 'bob']);
+check('result toArray()/toObject() parity', $onlineResult->toArray() === $onlineResult->toObject());
+check('result serialization carries error_code key', array_key_exists('error_code', $onlineResult->toArray()));
+
+$offlineResult = new Result($taggedServer, false, 0.0, [], 'timeout', ErrorCode::TIMEOUT);
+check('offline result carries a typed error code', $offlineResult->errorCode === ErrorCode::TIMEOUT);
+check('offline accessors are null-safe', $offlineResult->name() === null && $offlineResult->players() === null && $offlineResult->playerNames() === []);
 
 echo "\n" . ($failures === 0 ? "All {$passed} checks passed.\n" : "{$failures} of " . ($passed + $failures) . " checks FAILED.\n");
 exit($failures === 0 ? 0 : 1);

@@ -77,9 +77,12 @@ final class Server
         return new self($protocol, $host, (int) $port, $id, $options);
     }
 
+    /** Human-readable identifier for logs/errors -- the caller id, or host:port. */
     public function label(): string
     {
-        return "{$this->host}:{$this->port}";
+        return $this->id !== null && $this->id !== ''
+            ? (string) $this->id
+            : "{$this->host}:{$this->port}";
     }
 }
 

@@ -89,6 +89,21 @@ final class GameQuery
         return $manager->run($jobs);
     }
 
+    /**
+     * Query a single server and return its one Result -- the common case without
+     * the addServer()/process() ceremony. Uses a fresh instance so it's safe to
+     * call statically.
+     *
+     * @param array<string,mixed> $options
+     * @param array{timeoutMs?: int, retries?: int} $config
+     */
+    public static function queryOne(string $protocol, string $address, array $options = [], array $config = []): Result
+    {
+        $gq = new self($config['timeoutMs'] ?? 2000, $config['retries'] ?? 1);
+        $gq->addServer($protocol, $address, null, $options);
+        return $gq->process()[0];
+    }
+
     /** Clears the queued server list so the same GameQuery instance can be reused for another batch. */
     public function reset(): self
     {

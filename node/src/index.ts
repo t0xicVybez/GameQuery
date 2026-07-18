@@ -2,6 +2,7 @@
 export { GameQuery } from './GameQuery.js';
 export { Server } from './Server.js';
 export { Result } from './Result.js';
+export { ErrorCode, type ErrorCodeValue } from './ErrorCode.js';
 export { ProtocolRegistry, type ProtocolFactory } from './ProtocolRegistry.js';
 export { AbstractProtocol } from './protocol/AbstractProtocol.js';
 export type { ProtocolInterface } from './protocol/ProtocolInterface.js';
