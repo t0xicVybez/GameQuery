@@ -20,7 +20,7 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": ["game-server", "query", "a2s", "source", "minecraft", "steam", "gamedig", "status"],
-  "author": "Cory (t0xicVybez)",
+  "author": "t0xicVybez",
   "license": "MIT",
   "homepage": "https://github.com/t0xicVybez/GameQuery/tree/main/node",
   "repository": {

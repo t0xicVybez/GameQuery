@@ -6,7 +6,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use GameQuery\GameQuery;
 
-$gq = new GameQuery(timeoutSeconds: 2.0, retries: 1);
+$gq = new GameQuery(timeoutMs: 2000, retries: 1);
 
 $gq->addServer('source', '127.0.0.1:27015', id: 'my-css-server');
 $gq->addServer('minecraft', 'mc.hypixel.net:25565', id: 'hypixel');

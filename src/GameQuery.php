@@ -28,10 +28,14 @@ final class GameQuery
     private float $timeoutSeconds;
     private int $retries;
 
-    public function __construct(float $timeoutSeconds = 2.0, int $retries = 1)
+    /**
+     * @param int $timeoutMs Per-step timeout in milliseconds (matches the Node port's unit).
+     * @param int $retries   Extra attempts after the first (total attempts = retries + 1).
+     */
+    public function __construct(int $timeoutMs = 2000, int $retries = 1)
     {
         $this->protocols = new ProtocolRegistry();
-        $this->timeoutSeconds = $timeoutSeconds;
+        $this->timeoutSeconds = $timeoutMs / 1000.0;
         $this->retries = $retries;
     }
 

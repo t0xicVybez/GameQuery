@@ -4,7 +4,7 @@ A dependency-free PHP library for querying multiplayer game server status
 — player counts, map, hostname, ping, rules/cvars — from one or many
 servers concurrently.
 
-Built by Cory ([@t0xicVybez](https://github.com/t0xicVybez)). No external
+Built by [@t0xicVybez](https://github.com/t0xicVybez). No external
 libraries required; runs on plain PHP 8.1+ with core streams, so it drops
 into a shared PHP webhost as easily as it runs standalone on a VPS next to
 [ArkenBot](https://github.com/t0xicVybez/ArkenBot). A dependency-free
@@ -144,7 +144,7 @@ require __DIR__ . '/autoload.php';
 ```php
 use GameQuery\GameQuery;
 
-$gq = new GameQuery(timeoutSeconds: 2.0, retries: 1);
+$gq = new GameQuery(timeoutMs: 2000, retries: 1);
 
 $gq->addServer('source', '127.0.0.1:27015', id: 'my-css-server');
 $gq->addServer('source-players', '203.0.113.10:27015', id: 'ranked-server');

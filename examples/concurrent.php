@@ -12,7 +12,7 @@ $servers = [
     ['source', '192.0.2.1:27015', 'unreachable-example'], // TEST-NET-1, always unreachable
 ];
 
-$gq = new GameQuery(timeoutSeconds: 1.5, retries: 1);
+$gq = new GameQuery(timeoutMs: 1500, retries: 1);
 
 foreach ($servers as [$protocol, $address, $id]) {
     $gq->addServer($protocol, $address, $id);

@@ -34,10 +34,10 @@ for (const r of await gq.process()) {
 `process()` queries every server concurrently and resolves one `Result` per
 server, in order — online or not.
 
-> **Note on the timeout unit:** this Node constructor takes **milliseconds**
-> (`2000` = 2s), following Node convention. The PHP library's constructor takes
-> **seconds** (`2.0`). The defaults match (2s); only the units of an explicit
-> value differ between the two ports.
+> **Note on the timeout unit:** the constructor takes **milliseconds**
+> (`2000` = 2s), following Node convention. The PHP port takes the same unit
+> (`new GameQuery(timeoutMs: 2000)`), so an explicit value means the same thing
+> in both ports.
 
 ## CLI
 

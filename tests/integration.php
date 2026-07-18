@@ -37,7 +37,7 @@ $targets = [
     // ['teamspeak3', '1.2.3.4:10011', 'My TS3 (query port must be open)', ['voicePort' => 9987]],
 ];
 
-$gq = new GameQuery(timeoutSeconds: 3.0, retries: 1);
+$gq = new GameQuery(timeoutMs: 3000, retries: 1);
 foreach ($targets as $t) {
     $gq->addServer($t[0], $t[1], $t[2], $t[3] ?? []);
 }
