@@ -24,7 +24,14 @@ export class GameSpy2 extends AbstractProtocol {
 
   initialStep(_server: Server): Step {
     // \xFF (rules) \xFF (players) \x00 (skip teams)
-    return { tag: 'info', packet: Buffer.concat([Buffer.from([0xfe, 0xfd, 0x00]), GameSpy2.INSTANCE_ID, Buffer.from([0xff, 0xff, 0x00])]) };
+    return {
+      tag: 'info',
+      packet: Buffer.concat([
+        Buffer.from([0xfe, 0xfd, 0x00]),
+        GameSpy2.INSTANCE_ID,
+        Buffer.from([0xff, 0xff, 0x00]),
+      ]),
+    };
   }
 
   nextStep(): Step | null {

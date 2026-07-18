@@ -45,7 +45,9 @@ async function main(): Promise<void> {
   const results = await gq.process();
   const elapsed = Date.now() - start;
 
-  console.log(`${pad('label', 22)} ${pad('protocol', 9)} ${pad('up', 4)} ${pad('ping', 9)}  ${pad('name', 30)} players`);
+  console.log(
+    `${pad('label', 22)} ${pad('protocol', 9)} ${pad('up', 4)} ${pad('ping', 9)}  ${pad('name', 30)} players`,
+  );
   console.log('-'.repeat(100));
 
   let online = 0;

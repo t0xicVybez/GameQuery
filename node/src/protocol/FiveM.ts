@@ -71,7 +71,9 @@ export class FiveM extends AbstractProtocol {
           const players = JSON.parse(body) as Array<Record<string, unknown>>;
           if (Array.isArray(players)) {
             result.players = players.length;
-            result.players_list = players.map((p) => (typeof p === 'object' && p ? (p.name as string) ?? 'unknown' : 'unknown'));
+            result.players_list = players.map((p) =>
+              typeof p === 'object' && p ? ((p.name as string) ?? 'unknown') : 'unknown',
+            );
           }
         } catch {
           /* leave players unset */

@@ -102,6 +102,9 @@ export class Unreal2 extends AbstractProtocol {
       const bytes = r.read(Math.min(chars * 2, r.remaining()));
       return bytes.toString('utf16le').replace(/\x00+$/, '');
     }
-    return r.read(Math.min(len, r.remaining())).toString('utf8').replace(/\x00+$/, '');
+    return r
+      .read(Math.min(len, r.remaining()))
+      .toString('utf8')
+      .replace(/\x00+$/, '');
   }
 }

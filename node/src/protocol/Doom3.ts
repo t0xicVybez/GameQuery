@@ -20,7 +20,10 @@ export class Doom3 extends AbstractProtocol {
   }
 
   initialStep(_server: Server): Step {
-    return { tag: 'info', packet: Buffer.concat([Doom3.OOB, Buffer.from('getInfo\x00\x00\x00\x00\x00', 'latin1')]) };
+    return {
+      tag: 'info',
+      packet: Buffer.concat([Doom3.OOB, Buffer.from('getInfo\x00\x00\x00\x00\x00', 'latin1')]),
+    };
   }
 
   nextStep(): Step | null {

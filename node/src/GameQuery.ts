@@ -34,7 +34,12 @@ export class GameQuery {
    * @param id        Optional caller tag echoed back on the Result.
    * @param options   Per-server config, e.g. { password: '...' } for Palworld.
    */
-  addServer(protocol: string, address: string, id: unknown = null, options: Record<string, unknown> = {}): this {
+  addServer(
+    protocol: string,
+    address: string,
+    id: unknown = null,
+    options: Record<string, unknown> = {},
+  ): this {
     this.servers.push(Server.fromAddress(protocol, address, id, options));
     return this;
   }

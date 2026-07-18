@@ -1,0 +1,20 @@
+parameters:
+    level: 5
+    paths:
+        - src
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        # ByteReader is a byte cursor: eof()/remaining() return values change as
+        # read()/skip() advance the offset. PHPStan's pure-method inference can
+        # "remember" an earlier eof() result and flag a subsequent while(!eof())
+        # loop as always-true. These loops are correct and bounded by buffer length.
+        -
+            identifier: booleanNot.alwaysTrue
+            path: src/Protocol/*.php
+        -
+            identifier: if.alwaysFalse
+            path: src/Protocol/*.php
+        -
+            identifier: if.alwaysTrue
+            path: src/Protocol/*.php

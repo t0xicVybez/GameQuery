@@ -14,31 +14,31 @@ require __DIR__ . '/../autoload.php';
 
 use GameQuery\Buffer\ByteReader;
 use GameQuery\Buffer\ByteWriter;
-use GameQuery\Protocol\Minecraft;
+use GameQuery\ErrorCode;
+use GameQuery\Exception\GameQueryException;
+use GameQuery\Protocol\Ase;
+use GameQuery\Protocol\AssettoCorsa;
 use GameQuery\Protocol\Bedrock;
+use GameQuery\Protocol\Doom3;
 use GameQuery\Protocol\FiveM;
-use GameQuery\Protocol\Palworld;
-use GameQuery\Protocol\Quake2;
-use GameQuery\Protocol\Quake3;
+use GameQuery\Protocol\Frostbite;
 use GameQuery\Protocol\GameSpy1;
 use GameQuery\Protocol\GameSpy2;
 use GameQuery\Protocol\GameSpy3;
-use GameQuery\Protocol\Unreal2;
-use GameQuery\Protocol\Doom3;
-use GameQuery\Protocol\Ase;
+use GameQuery\Protocol\Minecraft;
+use GameQuery\Protocol\MinecraftLegacy;
 use GameQuery\Protocol\Mumble;
-use GameQuery\Protocol\Frostbite;
-use GameQuery\Protocol\AssettoCorsa;
+use GameQuery\Protocol\Palworld;
+use GameQuery\Protocol\Quake2;
+use GameQuery\Protocol\Quake3;
+use GameQuery\Protocol\QuakeWorld;
+use GameQuery\Protocol\Samp;
+use GameQuery\Protocol\Source;
 use GameQuery\Protocol\TeamSpeak3;
 use GameQuery\Protocol\Terraria;
-use GameQuery\Protocol\Samp;
-use GameQuery\Protocol\QuakeWorld;
-use GameQuery\Protocol\MinecraftLegacy;
-use GameQuery\Exception\GameQueryException;
-use GameQuery\Protocol\Source;
-use GameQuery\Server;
+use GameQuery\Protocol\Unreal2;
 use GameQuery\Result;
-use GameQuery\ErrorCode;
+use GameQuery\Server;
 
 $failures = 0;
 $passed = 0;
@@ -82,8 +82,8 @@ $infoPacket = "\xFF\xFF\xFF\xFF" . "\x49" // header + type 'I'
     . "\x0A"                              // players = 10
     . "\x14"                              // max players = 20
     . "\x02"                              // bots = 2
-    . "d"                                 // dedicated
-    . "l"                                 // linux
+    . 'd'                                 // dedicated
+    . 'l'                                 // linux
     . "\x00"                              // not password protected
     . "\x01"                              // VAC secured
     . "1.38\x00";                         // version string
@@ -106,7 +106,7 @@ check('vac_secured decoded', $parsed['vac_secured'] === true);
 $shipPacket = "\xFF\xFF\xFF\xFF" . "\x49" . "\x07"
     . "Ship Server\x00" . "ship_lobby\x00" . "ship\x00" . "The Ship\x00"
     . pack('v', 2400)                     // app id 2400 -> The Ship
-    . "\x05" . "\x08" . "\x00" . "d" . "w" . "\x00" . "\x00"
+    . "\x05" . "\x08" . "\x00" . 'd' . 'w' . "\x00" . "\x00"
     . "\x02" . "\x03" . "\x04"            // ship mode / witnesses / duration
     . "1.0.0.4\x00";
 $ship = $source->parse($server, [['tag' => 'info', 'request' => '', 'response' => $shipPacket]]);
@@ -116,7 +116,7 @@ check('the ship: version still aligned after extra bytes', $ship['version'] === 
 
 echo "\nSource challenge extraction drives the player-query step correctly\n";
 
-$challengeResponse = "\xFF\xFF\xFF\xFF" . "A" . pack('V', 0xDEADBEEF);
+$challengeResponse = "\xFF\xFF\xFF\xFF" . 'A' . pack('V', 0xDEADBEEF);
 $history = [
     ['tag' => 'info', 'request' => '', 'response' => $infoPacket],
     ['tag' => 'player_challenge', 'request' => '', 'response' => $challengeResponse],
@@ -127,7 +127,7 @@ check('challenge bytes carried into next packet', str_ends_with($next['packet'],
 
 echo "\nSource A2S_INFO challenge round-trip (Valve 2020 anti-spoof)\n";
 
-$infoChallenge = "\xFF\xFF\xFF\xFF" . "A" . pack('V', 0x11223344);
+$infoChallenge = "\xFF\xFF\xFF\xFF" . 'A' . pack('V', 0x11223344);
 $retryNext = $source->nextStep($server, [
     ['tag' => 'info', 'request' => '', 'response' => $infoChallenge],
 ]);
@@ -437,8 +437,8 @@ $tsServer = Server::fromAddress('teamspeak3', '127.0.0.1:10011');
 $tsResponse = "TS3\r\n"
     . "Welcome to the TeamSpeak 3 ServerQuery interface, type \"help\" for a list of commands.\r\n"
     . "error id=0 msg=ok\r\n"                                 // reply to `use`
-    . "virtualserver_unique_identifier=abc123 virtualserver_name=My\\sCool\\sTS3\\sServer "
-    . "virtualserver_maxclients=32 virtualserver_clientsonline=6 virtualserver_channelsonline=10 "
+    . 'virtualserver_unique_identifier=abc123 virtualserver_name=My\\sCool\\sTS3\\sServer '
+    . 'virtualserver_maxclients=32 virtualserver_clientsonline=6 virtualserver_channelsonline=10 '
     . "virtualserver_version=3.13.7 virtualserver_platform=Linux virtualserver_queryclientsonline=1\r\n"
     . "error id=0 msg=ok\r\n";                                // reply to `serverinfo`
 $tsParsed = $ts->parse($tsServer, [['tag' => 'query', 'request' => '', 'response' => $tsResponse]]);

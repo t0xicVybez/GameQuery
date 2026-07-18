@@ -24,7 +24,10 @@ export class GameSpy3 extends AbstractProtocol {
   }
 
   initialStep(_server: Server): Step {
-    return { tag: 'challenge', packet: Buffer.concat([Buffer.from([0xfe, 0xfd, 0x09]), GameSpy3.SESSION_ID]) };
+    return {
+      tag: 'challenge',
+      packet: Buffer.concat([Buffer.from([0xfe, 0xfd, 0x09]), GameSpy3.SESSION_ID]),
+    };
   }
 
   nextStep(_server: Server, history: HistoryEntry[]): Step | null {
@@ -33,7 +36,11 @@ export class GameSpy3 extends AbstractProtocol {
     if (reply === null) return null;
 
     // Reply: \x09 <sessionId:4> <ascii challenge, null-terminated>
-    const challengeStr = reply.subarray(5).toString('latin1').replace(/\x00.*$/, '').trim();
+    const challengeStr = reply
+      .subarray(5)
+      .toString('latin1')
+      .replace(/\x00.*$/, '')
+      .trim();
     const challenge = Number.parseInt(challengeStr, 10) | 0;
     const chalBuf = Buffer.alloc(4);
     chalBuf.writeInt32BE(challenge, 0);

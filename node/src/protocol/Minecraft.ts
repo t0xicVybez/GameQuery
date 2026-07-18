@@ -80,7 +80,7 @@ export class Minecraft extends AbstractProtocol {
       name = description;
     } else if (description && typeof description === 'object') {
       const d = description as Record<string, unknown>;
-      name = typeof d.text === 'string' && (d.extra === undefined) ? d.text : this.flattenChat(d);
+      name = typeof d.text === 'string' && d.extra === undefined ? d.text : this.flattenChat(d);
     } else {
       name = '';
     }
@@ -104,7 +104,10 @@ export class Minecraft extends AbstractProtocol {
     let text = typeof chat.text === 'string' ? chat.text : '';
     const extra = Array.isArray(chat.extra) ? chat.extra : [];
     for (const part of extra) {
-      text += typeof part === 'object' && part ? ((part as Record<string, unknown>).text as string) ?? '' : String(part);
+      text +=
+        typeof part === 'object' && part
+          ? (((part as Record<string, unknown>).text as string) ?? '')
+          : String(part);
     }
     return text;
   }

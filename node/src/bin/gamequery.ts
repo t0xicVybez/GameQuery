@@ -39,7 +39,12 @@ async function main(): Promise<void> {
       if (typeof entry.protocol !== 'string' || typeof entry.address !== 'string') {
         fail('Each batch entry needs "protocol" and "address"');
       }
-      gq.addServer(entry.protocol, entry.address, entry.id ?? null, (entry.options as Record<string, unknown>) ?? {});
+      gq.addServer(
+        entry.protocol,
+        entry.address,
+        entry.id ?? null,
+        (entry.options as Record<string, unknown>) ?? {},
+      );
     }
   } else {
     const protocol = args[0] as string;

@@ -56,14 +56,24 @@ export class Source extends AbstractProtocol {
       };
     }
     if (this.includePlayers && !this.hasTag(history, 'player_challenge')) {
-      return { tag: 'player_challenge', packet: Buffer.concat([Source.HEADER, Buffer.from([0x55]), Source.CHALLENGE_PLACEHOLDER]) };
+      return {
+        tag: 'player_challenge',
+        packet: Buffer.concat([Source.HEADER, Buffer.from([0x55]), Source.CHALLENGE_PLACEHOLDER]),
+      };
     }
-    if (this.includePlayers && this.hasTag(history, 'player_challenge') && !this.hasTag(history, 'player_data')) {
+    if (
+      this.includePlayers &&
+      this.hasTag(history, 'player_challenge') &&
+      !this.hasTag(history, 'player_data')
+    ) {
       const challenge = this.extractChallenge(this.responseFor(history, 'player_challenge'));
       return { tag: 'player_data', packet: Buffer.concat([Source.HEADER, Buffer.from([0x55]), challenge]) };
     }
     if (this.includeRules && !this.hasTag(history, 'rules_challenge')) {
-      return { tag: 'rules_challenge', packet: Buffer.concat([Source.HEADER, Buffer.from([0x56]), Source.CHALLENGE_PLACEHOLDER]) };
+      return {
+        tag: 'rules_challenge',
+        packet: Buffer.concat([Source.HEADER, Buffer.from([0x56]), Source.CHALLENGE_PLACEHOLDER]),
+      };
     }
     if (this.includeRules && this.hasTag(history, 'rules_challenge') && !this.hasTag(history, 'rules_data')) {
       const challenge = this.extractChallenge(this.responseFor(history, 'rules_challenge'));
@@ -157,7 +167,12 @@ export class Source extends AbstractProtocol {
     const count = r.readUInt8();
     const players: Array<Record<string, unknown>> = [];
     for (let i = 0; i < count && !r.eof(); i++) {
-      players.push({ index: r.readUInt8(), name: r.readCString(), score: r.readInt32(), duration_sec: r.readFloat() });
+      players.push({
+        index: r.readUInt8(),
+        name: r.readCString(),
+        score: r.readInt32(),
+        duration_sec: r.readFloat(),
+      });
     }
     return players;
   }

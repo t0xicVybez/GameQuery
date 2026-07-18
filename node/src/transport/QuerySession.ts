@@ -205,7 +205,11 @@ export class QuerySession {
       }
       return;
     }
-    this.finish(this.history.length > 0, this.history.length ? null : 'timeout', this.history.length ? null : ErrorCode.TIMEOUT);
+    this.finish(
+      this.history.length > 0,
+      this.history.length ? null : 'timeout',
+      this.history.length ? null : ErrorCode.TIMEOUT,
+    );
   }
 
   private finishSoft(error: string | null, errorCode: ErrorCodeValue): void {
@@ -213,7 +217,11 @@ export class QuerySession {
     this.finish(this.history.length > 0, offline ? error : null, offline ? errorCode : null);
   }
 
-  private finish(online: boolean, error: string | null = null, errorCode: ErrorCodeValue | null = null): void {
+  private finish(
+    online: boolean,
+    error: string | null = null,
+    errorCode: ErrorCodeValue | null = null,
+  ): void {
     if (this.done) return;
     this.done = true;
     this.online = online;

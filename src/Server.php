@@ -85,4 +85,3 @@ final class Server
             : "{$this->host}:{$this->port}";
     }
 }
-

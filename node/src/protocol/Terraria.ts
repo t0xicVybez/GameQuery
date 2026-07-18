@@ -30,7 +30,9 @@ export class Terraria extends AbstractProtocol {
   initialStep(server: Server): Step {
     const token = server.options.token;
     if (typeof token !== 'string' || token === '') {
-      throw new Error(`Terraria server ${server.label()}: missing required options.token (TShock REST token)`);
+      throw new Error(
+        `Terraria server ${server.label()}: missing required options.token (TShock REST token)`,
+      );
     }
 
     const path = `/v2/server/status?players=true&token=${encodeURIComponent(token)}`;

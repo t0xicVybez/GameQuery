@@ -105,10 +105,18 @@ final class Ase extends AbstractProtocol
             try {
                 $flags = $reader->readUInt8();
                 $name = ($flags & 0x01) ? $this->readString($reader) : '';
-                if ($flags & 0x02) $this->readString($reader); // team
-                if ($flags & 0x04) $this->readString($reader); // skin
-                if ($flags & 0x08) $this->readString($reader); // score
-                if ($flags & 0x10) $this->readString($reader); // ping
+                if ($flags & 0x02) {
+                    $this->readString($reader);
+                } // team
+                if ($flags & 0x04) {
+                    $this->readString($reader);
+                } // skin
+                if ($flags & 0x08) {
+                    $this->readString($reader);
+                } // score
+                if ($flags & 0x10) {
+                    $this->readString($reader);
+                } // ping
             } catch (\Throwable) {
                 break;
             }

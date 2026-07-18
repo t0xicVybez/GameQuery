@@ -2,6 +2,7 @@
 composer.lock
 .DS_Store
 *.log
+.php-cs-fixer.cache
 node/node_modules/
 node/dist/
 node/package-lock.json

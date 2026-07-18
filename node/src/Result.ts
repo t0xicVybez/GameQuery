@@ -50,7 +50,11 @@ export class Result {
     const names: string[] = [];
     for (const player of list) {
       if (typeof player === 'string') names.push(player);
-      else if (player && typeof player === 'object' && typeof (player as { name?: unknown }).name === 'string') {
+      else if (
+        player &&
+        typeof player === 'object' &&
+        typeof (player as { name?: unknown }).name === 'string'
+      ) {
         names.push((player as { name: string }).name);
       }
     }

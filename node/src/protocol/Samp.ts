@@ -81,7 +81,10 @@ export class Samp extends AbstractProtocol {
   }
 
   private buildPacket(server: Server, opcode: string): Buffer {
-    const octets = server.address().split('.').map((o) => parseInt(o, 10) & 0xff);
+    const octets = server
+      .address()
+      .split('.')
+      .map((o) => parseInt(o, 10) & 0xff);
     const ip = octets.length === 4 ? octets : [0, 0, 0, 0];
 
     const packet = Buffer.alloc(11);

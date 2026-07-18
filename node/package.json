@@ -21,6 +21,9 @@
     "build": "tsc",
     "test": "tsc && node dist/tests/smoke.test.js",
     "test:integration": "tsc && node dist/tests/integration.test.js",
+    "lint": "eslint \"src/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -45,7 +48,11 @@
     "url": "https://github.com/t0xicVybez/GameQuery/issues"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.0.0",
-    "typescript": "^5.7.0"
+    "eslint": "^10.7.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.64.0"
   }
 }
