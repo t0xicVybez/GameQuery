@@ -61,7 +61,7 @@ final class QuerySession
         // host resolved to a numeric IP up front. gethostbyname() returns the
         // input unchanged for an IP or on failure, which is the right fallback.
         if ($this->protocol->requiresAddressResolution()) {
-            $this->activeServer = $this->server->withResolvedIp(gethostbyname($this->server->host));
+            $this->activeServer = $this->server->withResolvedIp(self::resolve($this->server->host));
         }
 
         try {
@@ -284,6 +284,21 @@ final class QuerySession
             @fclose($this->socket);
         }
         $this->socket = null;
+    }
+
+    /** @var array<string, array{ip: string, expires: float}> */
+    private static array $dnsCache = [];
+
+    /** Resolve a host to an IP, cached briefly to avoid re-querying DNS per poll. */
+    private static function resolve(string $host): string
+    {
+        $now = microtime(true);
+        if (isset(self::$dnsCache[$host]) && self::$dnsCache[$host]['expires'] > $now) {
+            return self::$dnsCache[$host]['ip'];
+        }
+        $ip = gethostbyname($host);
+        self::$dnsCache[$host] = ['ip' => $ip, 'expires' => $now + 300.0];
+        return $ip;
     }
 
     public function toResult(): Result

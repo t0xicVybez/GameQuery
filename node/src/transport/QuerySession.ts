@@ -64,8 +64,7 @@ export class QuerySession {
     // resolved to a numeric IP before initialStep().
     if (this.protocol.requiresAddressResolution()) {
       try {
-        const { address } = await lookup(this.server.host, { family: 4 });
-        this.activeServer = this.server.withResolvedIp(address);
+        this.activeServer = this.server.withResolvedIp(await QuerySession.resolve(this.server.host));
       } catch {
         // Resolution failed; leave activeServer as host. The query will most
         // likely fail downstream and be reported offline, which is correct.
@@ -265,5 +264,18 @@ export class QuerySession {
 
   private now(): number {
     return Number(process.hrtime.bigint() / 1000n) / 1000; // ms with sub-ms resolution
+  }
+
+  private static readonly dnsCache = new Map<string, { ip: string; expires: number }>();
+  private static readonly DNS_TTL_MS = 300_000;
+
+  /** Resolve a host to an IPv4 address, cached briefly to avoid re-querying DNS per poll. */
+  private static async resolve(host: string): Promise<string> {
+    const now = Date.now();
+    const cached = QuerySession.dnsCache.get(host);
+    if (cached && cached.expires > now) return cached.ip;
+    const { address } = await lookup(host, { family: 4 });
+    QuerySession.dnsCache.set(host, { ip: address, expires: now + QuerySession.DNS_TTL_MS });
+    return address;
   }
 }

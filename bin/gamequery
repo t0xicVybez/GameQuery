@@ -23,9 +23,12 @@
  *
  * Always exits 0 with JSON on stdout, even for offline servers -- check the
  * `online` field per result. A non-zero exit means a usage error, not a
- * server being down. Note: --password ends up visible in `ps` output on a
- * shared machine, same as any CLI flag would -- prefer the --batch form
- * with options if that matters for your setup.
+ * server being down.
+ *
+ * A --password flag is visible in `ps` output on a shared machine. To keep the
+ * secret out of the process table and shell history, pass it another way:
+ *   GAMEQUERY_PASSWORD=adminpw php bin/gamequery palworld 1.2.3.4:8212
+ *   echo adminpw | php bin/gamequery palworld 1.2.3.4:8212 --password-stdin
  */
 
 $composerAutoload = __DIR__ . '/../vendor/autoload.php';
@@ -78,13 +81,32 @@ if ($isBatch) {
     $address = $args[1] ?? fail('Missing host:port argument');
 
     $options = [];
-    for ($i = 2; $i < count($args); $i += 2) {
+    $passwordFromStdin = false;
+    for ($i = 2; $i < count($args); $i++) {
         $flag = $args[$i];
         if (!str_starts_with($flag, '--')) {
             fail("Unexpected argument '{$flag}', expected a --flag");
         }
+        if ($flag === '--password-stdin') {
+            $passwordFromStdin = true;
+            continue;
+        }
         $value = $args[$i + 1] ?? fail("Flag {$flag} needs a value");
         $options[substr($flag, 2)] = $value;
+        $i++;
+    }
+
+    // Resolve a password from stdin or the environment when not passed as a
+    // flag, so it never lands in `ps` output or shell history.
+    if (!isset($options['password'])) {
+        if ($passwordFromStdin) {
+            $line = fgets(STDIN);
+            if ($line !== false) {
+                $options['password'] = rtrim($line, "\r\n");
+            }
+        } elseif (($envPassword = getenv('GAMEQUERY_PASSWORD')) !== false && $envPassword !== '') {
+            $options['password'] = $envPassword;
+        }
     }
 
     $gq->addServer($protocol, $address, null, $options);

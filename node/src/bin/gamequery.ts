@@ -9,8 +9,14 @@
  *
  * Always exits 0 with JSON on stdout, even for offline servers — check the
  * `online` field. A non-zero exit means a usage error, not a server being down.
+ *
+ * A --password flag is visible in `ps`. To keep the secret out of the process
+ * table and shell history, pass it another way:
+ *   GAMEQUERY_PASSWORD=adminpw gamequery palworld 1.2.3.4:8212
+ *   echo adminpw | gamequery palworld 1.2.3.4:8212 --password-stdin
  */
 import { GameQuery } from '../GameQuery.js';
+import { readFileSync } from 'node:fs';
 
 function fail(message: string): never {
   process.stderr.write(message + '\n');
@@ -50,12 +56,29 @@ async function main(): Promise<void> {
     const protocol = args[0] as string;
     const address = args[1] ?? fail('Missing host:port argument');
     const options: Record<string, unknown> = {};
-    for (let i = 2; i < args.length; i += 2) {
+    let passwordFromStdin = false;
+    for (let i = 2; i < args.length; i++) {
       const flag = args[i] as string;
       if (!flag.startsWith('--')) fail(`Unexpected argument '${flag}', expected a --flag`);
+      if (flag === '--password-stdin') {
+        passwordFromStdin = true;
+        continue;
+      }
       const value = args[i + 1] ?? fail(`Flag ${flag} needs a value`);
       options[flag.slice(2)] = value;
+      i++;
     }
+
+    // Resolve a password from stdin or the environment when not passed as a
+    // flag, so it never lands in `ps` output or shell history.
+    if (options.password === undefined) {
+      if (passwordFromStdin) {
+        options.password = readFileSync(0, 'utf8').split(/\r?\n/)[0];
+      } else if (process.env.GAMEQUERY_PASSWORD) {
+        options.password = process.env.GAMEQUERY_PASSWORD;
+      }
+    }
+
     gq.addServer(protocol, address, null, options);
   }
 
