@@ -15,9 +15,17 @@ export class GameQuery {
   private readonly protocols = new ProtocolRegistry();
   private servers: Server[] = [];
 
+  /**
+   * @param timeoutMs      Per-step timeout in milliseconds.
+   * @param retries        Extra attempts after the first (total attempts = retries + 1).
+   * @param maxConcurrent  Cap on sockets open at once; 0 = unlimited. Set a bound
+   *                       when polling very large fleets to avoid exhausting file
+   *                       descriptors / ephemeral ports.
+   */
   constructor(
     private readonly timeoutMs = 2000,
     private readonly retries = 1,
+    private readonly maxConcurrent = 0,
   ) {}
 
   /**
@@ -47,8 +55,16 @@ export class GameQuery {
       server,
       protocol: this.protocols.get(server.protocol),
     }));
-    const manager = new SocketManager(this.timeoutMs, this.retries);
-    return manager.run(jobs);
+    if (jobs.length === 0) return [];
+
+    // Run in windows when a concurrency cap is set; otherwise all at once.
+    const window = this.maxConcurrent > 0 ? this.maxConcurrent : jobs.length;
+    const results: Result[] = [];
+    for (let i = 0; i < jobs.length; i += window) {
+      const manager = new SocketManager(this.timeoutMs, this.retries);
+      results.push(...(await manager.run(jobs.slice(i, i + window))));
+    }
+    return results;
   }
 
   /**

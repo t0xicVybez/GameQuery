@@ -27,16 +27,21 @@ final class GameQuery
 
     private float $timeoutSeconds;
     private int $retries;
+    private int $maxConcurrent;
 
     /**
-     * @param int $timeoutMs Per-step timeout in milliseconds (matches the Node port's unit).
-     * @param int $retries   Extra attempts after the first (total attempts = retries + 1).
+     * @param int $timeoutMs     Per-step timeout in milliseconds (matches the Node port's unit).
+     * @param int $retries       Extra attempts after the first (total attempts = retries + 1).
+     * @param int $maxConcurrent Cap on sockets open at once; 0 = unlimited. Set a bound
+     *                           (e.g. 256) when polling very large fleets -- PHP's
+     *                           stream_select() can't watch more than ~1024 sockets at once.
      */
-    public function __construct(int $timeoutMs = 2000, int $retries = 1)
+    public function __construct(int $timeoutMs = 2000, int $retries = 1, int $maxConcurrent = 0)
     {
         $this->protocols = new ProtocolRegistry();
         $this->timeoutSeconds = $timeoutMs / 1000.0;
         $this->retries = $retries;
+        $this->maxConcurrent = $maxConcurrent;
     }
 
     /**
@@ -84,9 +89,22 @@ final class GameQuery
             ];
         }
 
-        $manager = new Transport\SocketManager($this->timeoutSeconds, $this->retries);
+        if ($jobs === []) {
+            return [];
+        }
 
-        return $manager->run($jobs);
+        // Run in windows when a concurrency cap is set; otherwise all at once.
+        $window = $this->maxConcurrent > 0 ? $this->maxConcurrent : count($jobs);
+
+        $results = [];
+        foreach (array_chunk($jobs, $window) as $chunk) {
+            $manager = new Transport\SocketManager($this->timeoutSeconds, $this->retries);
+            foreach ($manager->run($chunk) as $result) {
+                $results[] = $result;
+            }
+        }
+
+        return $results;
     }
 
     /**
