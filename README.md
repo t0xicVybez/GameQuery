@@ -61,11 +61,18 @@ $gq->addServer('palworld', '203.0.113.10:8212', id: 'pal', options: [
 
 foreach ($gq->process() as $result) {
     if (!$result->online) {
-        echo "{$result->server->label()} is offline ({$result->error})\n";
+        // errorCode is a stable ErrorCode:: constant (TIMEOUT, UNREACHABLE, ...)
+        echo "{$result->server->label()} is offline [{$result->errorCode}]\n";
         continue;
     }
-    echo "{$result->data['name']}: {$result->data['players']}/{$result->data['max_players']} players, {$result->pingMs}ms\n";
+    // Normalized accessors read the right field for any protocol.
+    echo "{$result->name()}: {$result->players()}/{$result->maxPlayers()} players, {$result->pingMs}ms\n";
 }
+```
+
+Just one server? Skip the ceremony:
+```php
+$r = GameQuery::queryOne('source', '127.0.0.1:27015');
 ```
 
 **Node / TypeScript:**
@@ -77,10 +84,28 @@ gq.addServer('source', '127.0.0.1:27015', 'my-css-server');
 gq.addServer('minecraft', 'mc.example.com:25565');
 
 for (const r of await gq.process()) {
-  if (!r.online) continue;
-  console.log(`${r.data.name}: ${r.data.players}/${r.data.max_players}, ${r.pingMs}ms`);
+  if (!r.online) {
+    console.log(`${r.server.label()} is offline [${r.errorCode}]`);
+    continue;
+  }
+  console.log(`${r.name()}: ${r.players()}/${r.maxPlayers()}, ${r.pingMs}ms`);
 }
+
+// Or a single server:
+const one = await GameQuery.queryOne('source', '127.0.0.1:27015');
 ```
+
+### Result API
+
+- **Normalized accessors** — `name()`, `map()`, `players()`, `maxPlayers()`,
+  `playerNames()` — read the right field regardless of protocol. Raw
+  protocol-specific fields remain on `data`.
+- **`errorCode`** — a stable `ErrorCode` value on failures (`TIMEOUT`,
+  `UNREACHABLE`, `CONNECTION_CLOSED`, `AUTH_FAILED`, `PROTOCOL_ERROR`,
+  `CONFIG_ERROR`) — switch on it instead of matching the human `error` string.
+- **`maxConcurrent`** — an optional third constructor arg caps how many sockets
+  are open at once (`new GameQuery(2000, 1, 256)`); use it for large fleets.
+- **`toArray()` / `toObject()`** — both serialize the result (the CLI's JSON shape).
 
 Results come back in add order, one per server. `data` holds whatever the
 protocol parsed — see each protocol class's `parse()` for its exact fields.
