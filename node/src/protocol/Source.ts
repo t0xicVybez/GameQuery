@@ -39,8 +39,21 @@ export class Source extends AbstractProtocol {
   }
 
   nextStep(_server: Server, history: HistoryEntry[]): Step | null {
-    if (!this.hasTag(history, 'info')) {
+    const infoRaw = this.responseFor(history, 'info');
+    if (infoRaw === null) {
       return null;
+    }
+    // A2S_INFO challenge (Valve, Dec 2020): some servers reply to A2S_INFO with a
+    // 0x41 challenge that must be echoed back before they send the real payload.
+    if (this.isChallengeReply(infoRaw) && !this.hasTag(history, 'info_retry')) {
+      return {
+        tag: 'info_retry',
+        packet: Buffer.concat([
+          Source.HEADER,
+          Buffer.from('\x54Source Engine Query\x00', 'latin1'),
+          this.extractChallenge(infoRaw),
+        ]),
+      };
     }
     if (this.includePlayers && !this.hasTag(history, 'player_challenge')) {
       return { tag: 'player_challenge', packet: Buffer.concat([Source.HEADER, Buffer.from([0x55]), Source.CHALLENGE_PLACEHOLDER]) };
@@ -62,7 +75,8 @@ export class Source extends AbstractProtocol {
   parse(_server: Server, history: HistoryEntry[]): Record<string, unknown> {
     const result: Record<string, unknown> = {};
 
-    const info = this.responseFor(history, 'info');
+    // Prefer the challenge-completed reply when the server required one.
+    const info = this.responseFor(history, 'info_retry') ?? this.responseFor(history, 'info');
     if (info !== null) {
       Object.assign(result, this.parseInfo(info));
     }
@@ -75,6 +89,11 @@ export class Source extends AbstractProtocol {
       result.rules = this.parseRules(rulesData);
     }
     return result;
+  }
+
+  /** An A2S reply is a challenge when the type byte (after the 0xFFFFFFFF header) is 0x41 ('A'). */
+  private isChallengeReply(raw: Buffer | null): boolean {
+    return raw !== null && raw.length >= 5 && raw.readUInt8(4) === 0x41;
   }
 
   private extractChallenge(response: Buffer | null): Buffer {

@@ -63,6 +63,18 @@ check('source map parsed', sp.map === 'de_dust2');
 check('source players parsed', sp.players === 12 && sp.max_players === 32);
 check('source challenge drives player step', new Source().nextStep(srv('source', 'x:1'), hist('info', info)) !== null);
 
+// A2S_INFO challenge round-trip (Valve 2020 anti-spoof): a 0x41 reply to A2S_INFO
+// must be echoed back before the server sends the real info payload.
+const infoChallenge = Buffer.from([0xff, 0xff, 0xff, 0xff, 0x41, 0x44, 0x33, 0x22, 0x11]);
+const retryStep = new Source().nextStep(srv('source', 'x:1'), hist('info', infoChallenge));
+check('challenged A2S_INFO triggers info_retry', retryStep !== null && retryStep.tag === 'info_retry');
+check('info_retry appends the 4-byte challenge', retryStep !== null && retryStep.packet.subarray(-4).equals(Buffer.from([0x44, 0x33, 0x22, 0x11])));
+const retryHist: HistoryEntry[] = [
+  { tag: 'info', request: Buffer.alloc(0), response: infoChallenge },
+  { tag: 'info_retry', request: Buffer.alloc(0), response: info },
+];
+check('info parsed from the challenge-completed reply', new Source().parse(srv('source', 'x:1'), retryHist).name === 'My CS2 Server');
+
 console.log('\nMinecraft framing + JSON');
 const mcJson = JSON.stringify({ description: { text: 'A Minecraft Server' }, version: { name: '1.21', protocol: 767 }, players: { online: 5, max: 20, sample: [{ name: 'Steve' }] } });
 const mcInner = new ByteWriter().writeVarInt(0x00).writeMcString(mcJson).toBuffer();

@@ -111,6 +111,22 @@ $next = $source->nextStep($server, $history);
 check('next step targets player_data', $next['tag'] === 'player_data');
 check('challenge bytes carried into next packet', str_ends_with($next['packet'], pack('V', 0xDEADBEEF)));
 
+echo "\nSource A2S_INFO challenge round-trip (Valve 2020 anti-spoof)\n";
+
+$infoChallenge = "\xFF\xFF\xFF\xFF" . "A" . pack('V', 0x11223344);
+$retryNext = $source->nextStep($server, [
+    ['tag' => 'info', 'request' => '', 'response' => $infoChallenge],
+]);
+check('challenged A2S_INFO triggers an info_retry step', $retryNext !== null && $retryNext['tag'] === 'info_retry');
+check('info_retry echoes the A2S_INFO query', str_contains($retryNext['packet'], "Source Engine Query\x00"));
+check('info_retry appends the 4-byte challenge', str_ends_with($retryNext['packet'], pack('V', 0x11223344)));
+
+$retryParsed = $source->parse($server, [
+    ['tag' => 'info', 'request' => '', 'response' => $infoChallenge],
+    ['tag' => 'info_retry', 'request' => '', 'response' => $infoPacket],
+]);
+check('info parsed from the challenge-completed reply', $retryParsed['name'] === 'My Test Server');
+
 echo "\nMinecraft status packet framing + JSON parsing\n";
 
 $statusJson = json_encode([

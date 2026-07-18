@@ -62,9 +62,19 @@ final class Source extends AbstractProtocol
 
     public function nextStep(Server $server, array $history): ?array
     {
-        if (!$this->hasTag($history, 'info')) {
+        $infoRaw = $this->responseFor($history, 'info');
+        if ($infoRaw === null) {
             // Still waiting on the very first reply; nothing new to send.
             return null;
+        }
+
+        // A2S_INFO challenge (Valve, Dec 2020): some servers reply to A2S_INFO with a
+        // 0x41 challenge that must be echoed back before they send the real payload.
+        if ($this->isChallengeReply($infoRaw) && !$this->hasTag($history, 'info_retry')) {
+            return [
+                'tag' => 'info_retry',
+                'packet' => self::HEADER . "\x54" . "Source Engine Query\x00" . $this->extractChallenge($infoRaw),
+            ];
         }
 
         if ($this->includePlayers && !$this->hasTag($history, 'player_challenge')) {
@@ -106,7 +116,8 @@ final class Source extends AbstractProtocol
     {
         $result = [];
 
-        $info = $this->responseFor($history, 'info');
+        // Prefer the challenge-completed reply when the server required one.
+        $info = $this->responseFor($history, 'info_retry') ?? $this->responseFor($history, 'info');
         if ($info !== null) {
             $result = array_merge($result, $this->parseInfo($info));
         }
@@ -122,6 +133,12 @@ final class Source extends AbstractProtocol
         }
 
         return $result;
+    }
+
+    /** An A2S reply is a challenge when the type byte (after the 0xFFFFFFFF header) is 0x41 ('A'). */
+    private function isChallengeReply(?string $raw): bool
+    {
+        return $raw !== null && strlen($raw) >= 5 && ord($raw[4]) === 0x41;
     }
 
     /** Pulls the 4-byte challenge number out of an S2C_CHALLENGE ('A') reply. */
