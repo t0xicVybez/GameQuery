@@ -8,7 +8,7 @@
   "bin": {
     "gamequery": "./dist/bin/gamequery.js"
   },
-  "files": ["dist", "README.md"],
+  "files": ["dist", "!dist/tests", "README.md"],
   "sideEffects": false,
   "engines": {
     "node": ">=18"
