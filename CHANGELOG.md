@@ -5,7 +5,7 @@ All notable changes to GameQuery are documented here. The format follows
 [Semantic Versioning](https://semver.org/). The PHP (`t0xicvybez/gamequery`) and
 Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
 
-## [Unreleased]
+## [0.2.0] - 2026-07-18
 
 ### Added
 - **Typed error codes.** `Result.errorCode` is one of a stable `ErrorCode` set
@@ -51,6 +51,6 @@ Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
   id Tech families, Mumble, TeamSpeak 3, Frostbite, Assetto Corsa, Terraria,
   SA-MP/open.mp), concurrent multi-server polling, and a JSON CLI.
 
-[Unreleased]: https://github.com/t0xicVybez/GameQuery/compare/v0.1.1...HEAD
+[0.2.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/t0xicVybez/GameQuery/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/t0xicVybez/GameQuery/releases/tag/v0.1.0
