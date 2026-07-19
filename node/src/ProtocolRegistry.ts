@@ -35,6 +35,7 @@ export class ProtocolRegistry {
     ['source-players', () => new Source(true)],
     ['source-full', () => new Source(true, true)],
     [Minecraft.protocolName(), () => new Minecraft()],
+    ['minecraft-ping', () => new Minecraft(true)],
     [Bedrock.protocolName(), () => new Bedrock()],
     ['minecraft-bedrock', () => new Bedrock()],
     [MinecraftLegacy.protocolName(), () => new MinecraftLegacy()],

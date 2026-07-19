@@ -13,6 +13,18 @@ import type { HistoryEntry, Step, Transport } from '../types.js';
 export class Minecraft extends AbstractProtocol {
   private static readonly PROTOCOL_VERSION = 767;
 
+  /**
+   * @param includePing When true, follow the status exchange with the SLP
+   *   ping/pong (packet 0x01) and report its round trip as data.ping_ms — a
+   *   purer network latency than the connect+status time. Costs an extra round
+   *   trip, and pre-1.7 / non-responding servers make it time out (the status
+   *   data still comes back). Off by default (the `minecraft` protocol);
+   *   `minecraft-ping` turns it on.
+   */
+  constructor(private readonly includePing = false) {
+    super();
+  }
+
   static protocolName(): string {
     return 'minecraft';
   }
@@ -36,8 +48,17 @@ export class Minecraft extends AbstractProtocol {
     return { tag: 'status', packet: Buffer.concat([handshake, statusRequest]) };
   }
 
-  nextStep(): Step | null {
-    return null;
+  nextStep(_server: Server, history: HistoryEntry[]): Step | null {
+    if (!this.includePing) return null;
+    if (!this.hasTag(history, 'status') || this.hasTag(history, 'ping')) return null;
+
+    // SLP ping (0x01) carrying our send-time as the 8-byte payload; the server
+    // echoes it in the pong, so parse() can recover the round-trip time without
+    // any per-step timing from the transport.
+    const payload = Buffer.alloc(8);
+    payload.writeBigUInt64BE(BigInt(Date.now()));
+    const ping = new ByteWriter().writeVarInt(0x01).writeRaw(payload).withVarIntLengthPrefix();
+    return { tag: 'ping', packet: ping };
   }
 
   isResponseComplete(buffer: Buffer): boolean {
@@ -89,7 +110,7 @@ export class Minecraft extends AbstractProtocol {
     const players = (decoded.players ?? {}) as Record<string, unknown>;
     const sample = Array.isArray(players.sample) ? (players.sample as Array<Record<string, unknown>>) : [];
 
-    return {
+    const result: Record<string, unknown> = {
       name,
       version: (version.name as string) ?? 'unknown',
       protocol: version.protocol ?? null,
@@ -98,6 +119,23 @@ export class Minecraft extends AbstractProtocol {
       players_list: sample.map((p) => (p.name as string) ?? 'unknown'),
       has_favicon: decoded.favicon !== undefined,
     };
+
+    // Recover the SLP ping/pong round trip from the echoed send-time, if we ran it.
+    const pong = this.responseFor(history, 'ping');
+    if (pong !== null) {
+      try {
+        const r = new ByteReader(pong);
+        r.readVarInt(); // packet length
+        if (r.readVarInt() === 0x01 && r.remaining() >= 8) {
+          const sent = Number(r.read(8).readBigUInt64BE(0));
+          result.ping_ms = Math.max(0, Date.now() - sent);
+        }
+      } catch {
+        /* no usable pong; leave ping_ms unset */
+      }
+    }
+
+    return result;
   }
 
   private flattenChat(chat: Record<string, unknown>): string {

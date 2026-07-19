@@ -146,6 +146,23 @@ const mcp = new Minecraft().parse(srv('minecraft', 'x:25565'), hist('status', mc
 check('minecraft name parsed', mcp.name === 'A Minecraft Server');
 check('minecraft players parsed', mcp.players === 5 && mcp.max_players === 20);
 check('minecraft sample parsed', JSON.stringify(mcp.players_list) === JSON.stringify(['Steve']));
+
+// minecraft-ping variant: after status it runs the SLP 0x01 ping/pong.
+const mcPing = new Minecraft(true);
+const pingStep = mcPing.nextStep(srv('minecraft', 'x:25565'), hist('status', mcFramed));
+check('minecraft-ping sends a 0x01 ping after status', pingStep !== null && pingStep.tag === 'ping');
+const mcSentTs = BigInt(Date.now() - 25);
+const mcPongPayload = Buffer.alloc(8);
+mcPongPayload.writeBigUInt64BE(mcSentTs);
+const mcPong = new ByteWriter().writeVarInt(0x01).writeRaw(mcPongPayload).withVarIntLengthPrefix();
+const pingParsed = mcPing.parse(srv('minecraft', 'x:25565'), [
+  { tag: 'status', request: Buffer.alloc(0), response: mcFramed },
+  { tag: 'ping', request: Buffer.alloc(0), response: mcPong },
+]);
+check(
+  'minecraft-ping reports ping_ms from the echoed pong',
+  typeof pingParsed.ping_ms === 'number' && pingParsed.ping_ms >= 25 && pingParsed.ping_ms < 5000,
+);
 check(
   'minecraft frame incomplete detected',
   new Minecraft().isResponseComplete(Buffer.from([0x80, 0x01])) === false,

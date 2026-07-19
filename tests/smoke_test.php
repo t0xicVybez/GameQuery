@@ -174,6 +174,19 @@ check('minecraft player count parsed', $mcParsed['players'] === 5);
 check('minecraft max players parsed', $mcParsed['max_players'] === 20);
 check('minecraft sample player list parsed', $mcParsed['players_list'] === ['Steve']);
 
+// minecraft-ping variant: after status it runs the SLP 0x01 ping/pong.
+$mcPing = new Minecraft(includePing: true);
+$statusOnly = [['tag' => 'status', 'request' => '', 'response' => $framed]];
+$pingStep = $mcPing->nextStep($mcServer, $statusOnly);
+check('minecraft-ping sends a 0x01 ping after status', $pingStep !== null && $pingStep['tag'] === 'ping');
+$sentTs = (int) round(microtime(true) * 1000) - 25; // pretend the ping went out 25ms ago
+$pong = (new ByteWriter())->writeVarInt(0x01)->writeRaw(pack('J', $sentTs))->withVarIntLengthPrefix();
+$pingParsed = $mcPing->parse($mcServer, [
+    ['tag' => 'status', 'request' => '', 'response' => $framed],
+    ['tag' => 'ping', 'request' => '', 'response' => $pong],
+]);
+check('minecraft-ping reports ping_ms from the echoed pong', isset($pingParsed['ping_ms']) && $pingParsed['ping_ms'] >= 25 && $pingParsed['ping_ms'] < 5000);
+
 echo "\nPalworld REST API request building + response parsing\n";
 
 $palServer = new Server('palworld', '203.0.113.10', 8212, options: ['password' => 'secret123']);

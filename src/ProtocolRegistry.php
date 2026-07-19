@@ -50,6 +50,7 @@ final class ProtocolRegistry
             'source-players' => static fn () => new Source(includePlayers: true),
             'source-full' => static fn () => new Source(includePlayers: true, includeRules: true),
             Minecraft::name() => static fn () => new Minecraft(),
+            'minecraft-ping' => static fn () => new Minecraft(includePing: true),
             Bedrock::name() => static fn () => new Bedrock(),
             'minecraft-bedrock' => static fn () => new Bedrock(),
             MinecraftLegacy::name() => static fn () => new MinecraftLegacy(),

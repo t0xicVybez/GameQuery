@@ -101,8 +101,7 @@ final class QuerySession
 
         $this->currentTag = $step['tag'];
         $this->currentPacket = $step['packet'];
-        $this->firstSendTime = microtime(true);
-        $this->stepStartTime = $this->firstSendTime;
+        $this->stepStartTime = microtime(true);
 
         if ($transport === 'udp') {
             $this->send();
@@ -226,6 +225,11 @@ final class QuerySession
         }
 
         $this->stepStartTime = microtime(true);
+        // Measure ping from the first real send (after TCP connect), not from
+        // socket open -- so it excludes connect time and matches the Node port.
+        if ($this->firstSendTime === 0.0) {
+            $this->firstSendTime = $this->stepStartTime;
+        }
         $this->readBuffer = '';
         $this->udpFragments = []; // discard any partial fragments from a prior attempt
 
