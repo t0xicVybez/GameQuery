@@ -31,6 +31,49 @@ export class Source extends AbstractProtocol {
     return 'udp';
   }
 
+  supportsMultiPacket(): boolean {
+    return true;
+  }
+
+  /**
+   * Reassemble a split A2S reply. A single-packet reply (0xFFFFFFFF header) is
+   * returned as-is; a split reply (0xFFFFFFFE) is collected by packet number
+   * across datagrams and its payloads concatenated once all `Total` arrive.
+   * Assumes the modern Source split header (with the 2-byte Size field); bzip2-
+   * compressed splits (legacy GoldSource) aren't decompressed.
+   */
+  reassemble(fragments: Buffer[]): Buffer | null {
+    const first = fragments[0];
+    if (!first || first.length < 4) return null;
+
+    const header = first.readUInt32LE(0);
+    if (header !== 0xfffffffe) {
+      return first; // single packet (0xFFFFFFFF) or not A2S — hand it straight to parse()
+    }
+
+    const payloads = new Map<number, Buffer>();
+    let total = 0;
+    let compressed = false;
+    for (const frag of fragments) {
+      if (frag.length < 12 || frag.readUInt32LE(0) !== 0xfffffffe) continue;
+      if (frag.readUInt32LE(4) >= 0x80000000) compressed = true; // high bit = bzip2
+      total = frag.readUInt8(8);
+      const number = frag.readUInt8(9);
+      payloads.set(number, frag.subarray(12)); // skip header(4)+id(4)+total(1)+number(1)+size(2)
+    }
+
+    if (compressed || total === 0) return first; // can't reassemble; parse() degrades gracefully
+    if (payloads.size < total) return null; // still waiting for datagrams
+
+    const parts: Buffer[] = [];
+    for (let i = 0; i < total; i++) {
+      const part = payloads.get(i);
+      if (!part) return null;
+      parts.push(part);
+    }
+    return Buffer.concat(parts);
+  }
+
   initialStep(_server: Server): Step {
     return {
       tag: 'info',

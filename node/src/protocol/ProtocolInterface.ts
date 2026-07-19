@@ -40,4 +40,18 @@ export interface ProtocolInterface {
    * AbstractProtocol returns false.
    */
   requiresAddressResolution(): boolean;
+
+  /**
+   * Whether this protocol's UDP reply may span several datagrams and needs
+   * reassemble() (A2S). False for every single-datagram protocol, which keeps
+   * the fast path unchanged. AbstractProtocol returns false.
+   */
+  supportsMultiPacket(): boolean;
+
+  /**
+   * UDP multi-packet only (supportsMultiPacket() === true): given the datagrams
+   * received so far for the current step, return the assembled reply when
+   * complete, or null if more are expected.
+   */
+  reassemble(fragments: Buffer[]): Buffer | null;
 }

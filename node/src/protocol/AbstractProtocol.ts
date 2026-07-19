@@ -40,4 +40,25 @@ export abstract class AbstractProtocol implements ProtocolInterface {
   requiresAddressResolution(): boolean {
     return false;
   }
+
+  /**
+   * Default: false. A protocol whose UDP reply can span several datagrams (A2S,
+   * for one) overrides this to true; the transport then hands every datagram of
+   * the current step to reassemble() instead of treating the first one as the
+   * whole reply. Leaving it false keeps the single-datagram fast path untouched
+   * for every other UDP protocol.
+   */
+  supportsMultiPacket(): boolean {
+    return false;
+  }
+
+  /**
+   * Only called when supportsMultiPacket() is true. Given every datagram
+   * received for the current step so far, return the assembled reply once it is
+   * complete, or null if more datagrams are still expected. The default just
+   * returns the latest datagram (no reassembly).
+   */
+  reassemble(fragments: Buffer[]): Buffer | null {
+    return fragments.length === 0 ? null : (fragments[fragments.length - 1] as Buffer);
+  }
 }

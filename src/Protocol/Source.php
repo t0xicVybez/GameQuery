@@ -52,6 +52,65 @@ final class Source extends AbstractProtocol
         return 'udp';
     }
 
+    public function supportsMultiPacket(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Reassemble a split A2S reply. A single-packet reply (0xFFFFFFFF header) is
+     * returned as-is; a split reply (0xFFFFFFFE) is collected by packet number
+     * across datagrams and its payloads concatenated once all `Total` arrive.
+     * Assumes the modern Source split header (with the 2-byte Size field);
+     * bzip2-compressed splits (legacy GoldSource) aren't decompressed.
+     *
+     * @param list<string> $fragments
+     */
+    public function reassemble(array $fragments): ?string
+    {
+        $first = $fragments[0] ?? null;
+        if ($first === null || strlen($first) < 4) {
+            return null;
+        }
+
+        $header = unpack('V', substr($first, 0, 4))[1];
+        if ($header !== 0xFFFFFFFE) {
+            return $first; // single packet (0xFFFFFFFF) or not A2S -- hand straight to parse()
+        }
+
+        $payloads = [];
+        $total = 0;
+        $compressed = false;
+        foreach ($fragments as $frag) {
+            if (strlen($frag) < 12 || unpack('V', substr($frag, 0, 4))[1] !== 0xFFFFFFFE) {
+                continue;
+            }
+            if (unpack('V', substr($frag, 4, 4))[1] >= 0x80000000) {
+                $compressed = true; // high bit = bzip2
+            }
+            $total = ord($frag[8]);
+            $number = ord($frag[9]);
+            $payloads[$number] = substr($frag, 12); // skip header(4)+id(4)+total(1)+number(1)+size(2)
+        }
+
+        if ($compressed || $total === 0) {
+            return $first; // can't reassemble; parse() degrades gracefully
+        }
+        if (count($payloads) < $total) {
+            return null; // still waiting for datagrams
+        }
+
+        $parts = '';
+        for ($i = 0; $i < $total; $i++) {
+            if (!isset($payloads[$i])) {
+                return null;
+            }
+            $parts .= $payloads[$i];
+        }
+
+        return $parts;
+    }
+
     public function initialStep(Server $server): array
     {
         return [

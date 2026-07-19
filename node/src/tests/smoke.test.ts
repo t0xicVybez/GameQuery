@@ -92,6 +92,32 @@ check(
   new Source().parse(srv('source', 'x:1'), retryHist).name === 'My CS2 Server',
 );
 
+// A2S multi-packet reassembly. Split header: FE FF FF FF (-2 LE) + id(4) +
+// total(1) + number(1) + size(2) + payload.
+const srcMp = new Source();
+const frag0 = Buffer.concat([
+  Buffer.from([0xfe, 0xff, 0xff, 0xff, 1, 0, 0, 0, 2, 0, 0xe0, 0x04]),
+  Buffer.from('PART-A'),
+]);
+const frag1 = Buffer.concat([
+  Buffer.from([0xfe, 0xff, 0xff, 0xff, 1, 0, 0, 0, 2, 1, 0xe0, 0x04]),
+  Buffer.from('PART-B'),
+]);
+check('reassemble waits until all fragments arrive', srcMp.reassemble([frag0]) === null);
+check(
+  'reassemble joins split payloads in packet order',
+  srcMp.reassemble([frag0, frag1])?.toString() === 'PART-APART-B',
+);
+check(
+  'reassemble reorders out-of-order fragments',
+  srcMp.reassemble([frag1, frag0])?.toString() === 'PART-APART-B',
+);
+const singlePacket = Buffer.from('\xff\xff\xff\xffSINGLE', 'latin1');
+check(
+  'reassemble returns a single packet unchanged',
+  srcMp.reassemble([singlePacket])?.equals(singlePacket) === true,
+);
+
 // "The Ship" (app_id 2400) inserts mode/witnesses/duration before the version.
 const shipInfo = Buffer.concat([
   Buffer.from([0xff, 0xff, 0xff, 0xff, 0x49, 7]),

@@ -21,6 +21,7 @@ export class QuerySession {
   private currentTag = '';
   private currentPacket: Buffer = Buffer.alloc(0);
   private readBuffer: Buffer = Buffer.alloc(0);
+  private udpFragments: Buffer[] = [];
 
   private firstSend = 0;
   private firstResponse = 0;
@@ -142,6 +143,17 @@ export class QuerySession {
 
   private onData(chunk: Buffer): void {
     if (this.done) return;
+    // Opt-in multi-packet path (A2S): hand every datagram to the protocol until
+    // it can assemble the whole reply. Every other UDP protocol skips this and
+    // keeps the untouched single-datagram fast path below.
+    if (this.isUdp() && this.protocol.supportsMultiPacket()) {
+      this.udpFragments.push(chunk);
+      const assembled = this.protocol.reassemble(this.udpFragments);
+      if (assembled === null) return; // more datagrams expected
+      this.readBuffer = assembled;
+      this.recordAndAdvance();
+      return;
+    }
     this.readBuffer = this.isUdp() ? chunk : Buffer.concat([this.readBuffer, chunk]);
     if (!this.protocol.isResponseComplete(this.readBuffer)) {
       return; // TCP: keep accumulating until the framed packet is whole
@@ -180,6 +192,7 @@ export class QuerySession {
   private sendCurrent(): void {
     if (this.socket === null) return;
     this.readBuffer = Buffer.alloc(0);
+    this.udpFragments = []; // discard any partial fragments from a prior attempt
     if (this.isUdp()) {
       // Never send before connect() has associated the peer — send() on an
       // unconnected socket throws synchronously. A retry that fires during the

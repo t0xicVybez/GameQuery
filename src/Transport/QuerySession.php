@@ -27,6 +27,9 @@ final class QuerySession
     private string $currentPacket = '';
     private string $readBuffer = '';
 
+    /** @var list<string> Datagrams collected for the current step (multi-packet protocols only). */
+    private array $udpFragments = [];
+
     /**
      * The server passed to the protocol -- identical to $server unless the
      * protocol opts into address resolution, in which case its host has been
@@ -159,6 +162,20 @@ final class QuerySession
             return; // spurious wakeup, nothing to do yet
         }
 
+        // Opt-in multi-packet path (A2S): hand every datagram to the protocol
+        // until it can assemble the whole reply. Every other UDP protocol skips
+        // this and keeps the untouched single-datagram fast path below.
+        if ($this->protocol->transport() === 'udp' && $this->protocol->supportsMultiPacket()) {
+            $this->udpFragments[] = $chunk;
+            $assembled = $this->protocol->reassemble($this->udpFragments);
+            if ($assembled === null) {
+                return; // more datagrams expected
+            }
+            $this->readBuffer = $assembled;
+            $this->recordResponseAndAdvance();
+            return;
+        }
+
         $this->readBuffer .= $chunk;
 
         if (!$this->protocol->isResponseComplete($this->readBuffer)) {
@@ -210,6 +227,7 @@ final class QuerySession
 
         $this->stepStartTime = microtime(true);
         $this->readBuffer = '';
+        $this->udpFragments = []; // discard any partial fragments from a prior attempt
 
         // Query packets here are all well under typical socket buffer sizes
         // (a few hundred bytes at most), so a single fwrite() reliably

@@ -53,4 +53,29 @@ abstract class AbstractProtocol implements ProtocolInterface
     {
         return false;
     }
+
+    /**
+     * Default: false. A protocol whose UDP reply can span several datagrams
+     * (A2S, for one) overrides this to true; the transport then hands every
+     * datagram of the current step to reassemble() instead of treating the
+     * first one as the whole reply. Leaving it false keeps the single-datagram
+     * fast path untouched for every other UDP protocol.
+     */
+    public function supportsMultiPacket(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Only called when supportsMultiPacket() is true. Given every datagram
+     * received for the current step so far, return the assembled reply once it
+     * is complete, or null if more datagrams are still expected. The default
+     * simply returns the latest datagram (no reassembly).
+     *
+     * @param list<string> $fragments
+     */
+    public function reassemble(array $fragments): ?string
+    {
+        return $fragments === [] ? null : $fragments[array_key_last($fragments)];
+    }
 }

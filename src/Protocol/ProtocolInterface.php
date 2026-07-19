@@ -73,4 +73,20 @@ interface ProtocolInterface
      * AbstractProtocol returns false.
      */
     public function requiresAddressResolution(): bool;
+
+    /**
+     * Whether this protocol's UDP reply may span several datagrams and needs
+     * reassemble() (A2S). False for every single-datagram protocol, which keeps
+     * the fast path unchanged. AbstractProtocol returns false.
+     */
+    public function supportsMultiPacket(): bool;
+
+    /**
+     * UDP multi-packet only (supportsMultiPacket() === true): given the
+     * datagrams received so far for the current step, return the assembled
+     * reply when complete, or null if more are expected.
+     *
+     * @param list<string> $fragments
+     */
+    public function reassemble(array $fragments): ?string;
 }

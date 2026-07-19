@@ -142,6 +142,17 @@ $retryParsed = $source->parse($server, [
 ]);
 check('info parsed from the challenge-completed reply', $retryParsed['name'] === 'My Test Server');
 
+echo "\nSource A2S multi-packet reassembly\n";
+
+// Split header: \xFE\xFF\xFF\xFF (-2 LE) + id(4) + total(1) + number(1) + size(2) + payload
+$frag0 = "\xFE\xFF\xFF\xFF" . "\x01\x00\x00\x00" . "\x02" . "\x00" . "\xE0\x04" . 'PART-A';
+$frag1 = "\xFE\xFF\xFF\xFF" . "\x01\x00\x00\x00" . "\x02" . "\x01" . "\xE0\x04" . 'PART-B';
+check('reassemble waits until all fragments arrive', $source->reassemble([$frag0]) === null);
+check('reassemble joins split payloads in packet order', $source->reassemble([$frag0, $frag1]) === 'PART-APART-B');
+check('reassemble reorders out-of-order fragments', $source->reassemble([$frag1, $frag0]) === 'PART-APART-B');
+$singlePacket = "\xFF\xFF\xFF\xFF" . 'SINGLE';
+check('reassemble returns a single packet unchanged', $source->reassemble([$singlePacket]) === $singlePacket);
+
 echo "\nMinecraft status packet framing + JSON parsing\n";
 
 $statusJson = json_encode([
