@@ -25,6 +25,7 @@ import { Samp } from '../protocol/Samp.js';
 import { QuakeWorld } from '../protocol/QuakeWorld.js';
 import { MinecraftLegacy } from '../protocol/MinecraftLegacy.js';
 import { MinecraftQuery } from '../protocol/MinecraftQuery.js';
+import { Satisfactory } from '../protocol/Satisfactory.js';
 import { Result } from '../Result.js';
 import { ErrorCode } from '../ErrorCode.js';
 import type { HistoryEntry } from '../types.js';
@@ -657,6 +658,34 @@ check(
   'mcquery full player list parsed',
   JSON.stringify(mcqParsed.players_list) === JSON.stringify(['Steve', 'Alex']),
 );
+
+console.log('\nSatisfactory Lightweight Query parsing');
+const sf = new Satisfactory();
+const sfServer = srv('satisfactory', '127.0.0.1:7777');
+const sfReq = sf.initialStep(sfServer).packet;
+check(
+  'satisfactory request has magic + poll type',
+  sfReq.subarray(0, 4).equals(Buffer.from([0xd5, 0xf6, 0x00, 0x01])),
+);
+const sfName = 'My Factory Server';
+const sfNameLen = Buffer.alloc(2);
+sfNameLen.writeUInt16LE(sfName.length);
+const sfNetCl = Buffer.alloc(4);
+sfNetCl.writeUInt32LE(368883);
+const sfResp = Buffer.concat([
+  Buffer.from([0xd5, 0xf6, 0x01, 0x01]), // magic + type=1 + version
+  Buffer.alloc(8), // cookie
+  Buffer.from([0x03]), // state = playing
+  sfNetCl,
+  Buffer.alloc(8), // flags
+  Buffer.from([0x01, 0x01, 0x00, 0x02, 0x00]), // numSubStates=1 + one sub-state
+  sfNameLen,
+  Buffer.from(sfName, 'utf8'),
+]);
+const sfParsed = sf.parse(sfServer, hist('state', sfResp));
+check('satisfactory name parsed', sfParsed.name === 'My Factory Server');
+check('satisfactory state decoded', sfParsed.state === 'playing');
+check('satisfactory net CL / version parsed', sfParsed.net_cl === 368883 && sfParsed.version === '368883');
 
 console.log('\nResult API: normalized accessors, error codes, serializer parity');
 const taggedServer = new Server('source', '1.2.3.4', 27015, 'my-tag');

@@ -24,6 +24,7 @@ use GameQuery\Protocol\Quake2;
 use GameQuery\Protocol\Quake3;
 use GameQuery\Protocol\QuakeWorld;
 use GameQuery\Protocol\Samp;
+use GameQuery\Protocol\Satisfactory;
 use GameQuery\Protocol\Source;
 use GameQuery\Protocol\TeamSpeak3;
 use GameQuery\Protocol\Terraria;
@@ -78,6 +79,7 @@ final class ProtocolRegistry
             Samp::name() => static fn () => new Samp(),
             'samp-info' => static fn () => new Samp(includePlayers: false),
             'openmp' => static fn () => new Samp(),
+            Satisfactory::name() => static fn () => new Satisfactory(),
         ];
     }
 

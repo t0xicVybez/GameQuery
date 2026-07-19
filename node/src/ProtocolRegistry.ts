@@ -21,6 +21,7 @@ import { AssettoCorsa } from './protocol/AssettoCorsa.js';
 import { TeamSpeak3 } from './protocol/TeamSpeak3.js';
 import { Terraria } from './protocol/Terraria.js';
 import { Samp } from './protocol/Samp.js';
+import { Satisfactory } from './protocol/Satisfactory.js';
 
 export type ProtocolFactory = () => ProtocolInterface;
 
@@ -63,6 +64,7 @@ export class ProtocolRegistry {
     [Samp.protocolName(), () => new Samp()],
     ['samp-info', () => new Samp(false)],
     ['openmp', () => new Samp()],
+    [Satisfactory.protocolName(), () => new Satisfactory()],
   ]);
 
   register(name: string, factory: ProtocolFactory): void {

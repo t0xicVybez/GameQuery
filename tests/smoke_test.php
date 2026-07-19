@@ -28,6 +28,7 @@ use GameQuery\Protocol\GameSpy3;
 use GameQuery\Protocol\Minecraft;
 use GameQuery\Protocol\MinecraftLegacy;
 use GameQuery\Protocol\MinecraftQuery;
+use GameQuery\Protocol\Satisfactory;
 use GameQuery\Protocol\Mumble;
 use GameQuery\Protocol\Palworld;
 use GameQuery\Protocol\Quake2;
@@ -624,6 +625,28 @@ check('mcquery map parsed', $mcqParsed['map'] === 'world');
 check('mcquery player counts parsed', $mcqParsed['players'] === 2 && $mcqParsed['max_players'] === 20);
 check('mcquery version parsed', $mcqParsed['version'] === '1.21');
 check('mcquery full player list parsed', $mcqParsed['players_list'] === ['Steve', 'Alex']);
+
+echo "\nSatisfactory Lightweight Query parsing\n";
+
+$sf = new Satisfactory();
+$sfServer = new Server('satisfactory', '127.0.0.1', 7777);
+$sfReq = $sf->initialStep($sfServer)['packet'];
+check('satisfactory request has magic + poll type', str_starts_with($sfReq, "\xD5\xF6\x00\x01"));
+check('satisfactory request ends with terminator', str_ends_with($sfReq, "\x01"));
+
+$sfName = 'My Factory Server';
+$sfResp = "\xD5\xF6" . "\x01\x01"                 // magic + type=1 (state) + version
+    . str_repeat("\x00", 8)                        // cookie (echoed)
+    . "\x03"                                        // state = playing
+    . pack('V', 368883)                             // net CL
+    . str_repeat("\x00", 8)                         // server flags
+    . "\x01"                                        // numSubStates = 1
+    . "\x01\x00\x02\x00"                            // one sub-state (id=1, ver=2)
+    . pack('v', strlen($sfName)) . $sfName;         // name length + name
+$sfParsed = $sf->parse($sfServer, [['tag' => 'state', 'request' => '', 'response' => $sfResp]]);
+check('satisfactory name parsed', $sfParsed['name'] === 'My Factory Server');
+check('satisfactory state decoded', $sfParsed['state'] === 'playing');
+check('satisfactory net CL / version parsed', $sfParsed['net_cl'] === 368883 && $sfParsed['version'] === '368883');
 
 echo "\nResult API: normalized accessors, error codes, serializer parity\n";
 
