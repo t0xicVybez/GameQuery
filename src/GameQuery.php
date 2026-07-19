@@ -122,6 +122,50 @@ final class GameQuery
         return $gq->process()[0];
     }
 
+    /**
+     * Query a server whose A2S/query port may sit at a small offset from its
+     * game port. Tries $basePort + each offset concurrently and returns the
+     * first Result that came back online (offsets are tried in order, so put the
+     * most likely first), or the base-port Result if none answered. The winning
+     * Result's server->id is the port that responded.
+     *
+     * Note: some games (Rust, for one) let admins pick an arbitrary query port
+     * with no fixed relationship to the game port -- offset probing can't find
+     * those; pass the real query port directly instead.
+     *
+     * @param list<int>           $offsets Query-port offsets relative to $basePort.
+     * @param array<string,mixed> $options
+     * @param array{timeoutMs?: int, retries?: int} $config
+     */
+    public static function queryWithPortProbe(
+        string $protocol,
+        string $host,
+        int $basePort,
+        array $offsets = [0, 1, -1],
+        array $options = [],
+        array $config = [],
+    ): Result {
+        $gq = new self($config['timeoutMs'] ?? 2000, $config['retries'] ?? 1);
+
+        $ports = [];
+        foreach ($offsets as $offset) {
+            $port = $basePort + $offset;
+            if ($port >= 1 && $port <= 65535 && !in_array($port, $ports, true)) {
+                $ports[] = $port;
+                $gq->addServer($protocol, "{$host}:{$port}", $port, $options);
+            }
+        }
+
+        $results = $gq->process();
+        foreach ($results as $result) {
+            if ($result->online) {
+                return $result;
+            }
+        }
+
+        return $results[0];
+    }
+
     /** Clears the queued server list so the same GameQuery instance can be reused for another batch. */
     public function reset(): self
     {

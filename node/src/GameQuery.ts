@@ -87,6 +87,40 @@ export class GameQuery {
     return (await gq.process())[0]!;
   }
 
+  /**
+   * Query a server whose A2S/query port may sit at a small offset from its game
+   * port. Tries `basePort` + each offset concurrently and resolves the first
+   * Result that came back online (offsets are tried in order), or the base-port
+   * Result if none answered. The winning Result's `server.id` is the port that
+   * responded.
+   *
+   * Note: some games (Rust, for one) let admins pick an arbitrary query port
+   * with no fixed relationship to the game port — offset probing can't find
+   * those; pass the real query port directly instead.
+   */
+  static async queryWithPortProbe(
+    protocol: string,
+    host: string,
+    basePort: number,
+    offsets: number[] = [0, 1, -1],
+    options: Record<string, unknown> = {},
+    config: { timeoutMs?: number; retries?: number } = {},
+  ): Promise<Result> {
+    const gq = new GameQuery(config.timeoutMs ?? 2000, config.retries ?? 1);
+
+    const seen = new Set<number>();
+    for (const offset of offsets) {
+      const port = basePort + offset;
+      if (port >= 1 && port <= 65535 && !seen.has(port)) {
+        seen.add(port);
+        gq.addServer(protocol, `${host}:${port}`, port, options);
+      }
+    }
+
+    const results = await gq.process();
+    return results.find((r) => r.online) ?? results[0]!;
+  }
+
   reset(): this {
     this.servers = [];
     return this;
