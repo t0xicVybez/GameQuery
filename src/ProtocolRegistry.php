@@ -101,4 +101,17 @@ final class ProtocolRegistry
     {
         return isset($this->factories[$name]);
     }
+
+    /**
+     * Every registered protocol key (including aliases/variants), sorted.
+     *
+     * @return list<string>
+     */
+    public function names(): array
+    {
+        $names = array_keys($this->factories);
+        sort($names);
+
+        return $names;
+    }
 }

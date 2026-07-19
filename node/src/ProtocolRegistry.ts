@@ -80,4 +80,9 @@ export class ProtocolRegistry {
     }
     return factory();
   }
+
+  /** Every registered protocol key (including aliases/variants), sorted. */
+  names(): string[] {
+    return [...this.factories.keys()].sort();
+  }
 }

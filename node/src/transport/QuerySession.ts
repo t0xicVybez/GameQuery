@@ -22,6 +22,7 @@ export class QuerySession {
   private currentPacket: Buffer = Buffer.alloc(0);
   private readBuffer: Buffer = Buffer.alloc(0);
   private udpFragments: Buffer[] = [];
+  private udpFragmentBytes = 0;
 
   private firstSend = 0;
   private firstResponse = 0;
@@ -141,21 +142,43 @@ export class QuerySession {
     this.arm();
   }
 
+  private static readonly MAX_FRAGMENTS = 256; // A2S Total is a byte (<=255)
+  private static readonly MAX_FRAGMENT_BYTES = 2_000_000; // bound memory vs a flooding peer
+
   private onData(chunk: Buffer): void {
     if (this.done) return;
     // Opt-in multi-packet path (A2S): hand every datagram to the protocol until
     // it can assemble the whole reply. Every other UDP protocol skips this and
     // keeps the untouched single-datagram fast path below.
     if (this.isUdp() && this.protocol.supportsMultiPacket()) {
-      this.udpFragments.push(chunk);
-      const assembled = this.protocol.reassemble(this.udpFragments);
+      // Bound how much a hostile/broken peer can make us buffer; past the cap we
+      // drop further datagrams and let reassembly time out on what we have.
+      if (
+        this.udpFragments.length < QuerySession.MAX_FRAGMENTS &&
+        this.udpFragmentBytes + chunk.length <= QuerySession.MAX_FRAGMENT_BYTES
+      ) {
+        this.udpFragments.push(chunk);
+        this.udpFragmentBytes += chunk.length;
+      }
+      let assembled: Buffer | null = null;
+      try {
+        assembled = this.protocol.reassemble(this.udpFragments);
+      } catch {
+        assembled = null; // a broken reassemble = keep waiting; the timeout will finish us
+      }
       if (assembled === null) return; // more datagrams expected
       this.readBuffer = assembled;
       this.recordAndAdvance();
       return;
     }
     this.readBuffer = this.isUdp() ? chunk : Buffer.concat([this.readBuffer, chunk]);
-    if (!this.protocol.isResponseComplete(this.readBuffer)) {
+    let complete = false;
+    try {
+      complete = this.protocol.isResponseComplete(this.readBuffer);
+    } catch {
+      complete = false; // treat a framing-check throw as "need more"
+    }
+    if (!complete) {
       return; // TCP: keep accumulating until the framed packet is whole
     }
     this.recordAndAdvance();
@@ -193,6 +216,7 @@ export class QuerySession {
     if (this.socket === null) return;
     this.readBuffer = Buffer.alloc(0);
     this.udpFragments = []; // discard any partial fragments from a prior attempt
+    this.udpFragmentBytes = 0;
     if (this.isUdp()) {
       // Never send before connect() has associated the peer — send() on an
       // unconnected socket throws synchronously. A retry that fires during the

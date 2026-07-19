@@ -34,6 +34,7 @@ jobs:
       - run: composer install --no-interaction --no-progress
       - run: composer analyse
       - run: composer cs
+      - run: composer fuzz
 
   node-test:
     name: Node ${{ matrix.node }}
@@ -67,6 +68,7 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm run lint
       - run: npm run format:check
+      - run: npm run fuzz
 
   parity:
     name: PHP/Node parity

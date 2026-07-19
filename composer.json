@@ -39,6 +39,7 @@
     ],
     "scripts": {
         "test": "php tests/smoke_test.php",
+        "fuzz": "php tests/fuzz_test.php",
         "analyse": "phpstan analyse",
         "cs": "php-cs-fixer fix --dry-run --diff",
         "cs:fix": "php-cs-fixer fix",

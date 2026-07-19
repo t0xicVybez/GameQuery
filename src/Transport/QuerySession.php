@@ -27,8 +27,12 @@ final class QuerySession
     private string $currentPacket = '';
     private string $readBuffer = '';
 
+    private const MAX_FRAGMENTS = 256;          // A2S Total is a byte (<=255)
+    private const MAX_FRAGMENT_BYTES = 2000000; // bound memory vs a flooding peer
+
     /** @var list<string> Datagrams collected for the current step (multi-packet protocols only). */
     private array $udpFragments = [];
+    private int $udpFragmentBytes = 0;
 
     /**
      * The server passed to the protocol -- identical to $server unless the
@@ -165,8 +169,18 @@ final class QuerySession
         // until it can assemble the whole reply. Every other UDP protocol skips
         // this and keeps the untouched single-datagram fast path below.
         if ($this->protocol->transport() === 'udp' && $this->protocol->supportsMultiPacket()) {
-            $this->udpFragments[] = $chunk;
-            $assembled = $this->protocol->reassemble($this->udpFragments);
+            // Bound how much a hostile/broken peer can make us buffer; past the
+            // cap we drop further datagrams and let reassembly time out.
+            if (count($this->udpFragments) < self::MAX_FRAGMENTS
+                && $this->udpFragmentBytes + strlen($chunk) <= self::MAX_FRAGMENT_BYTES) {
+                $this->udpFragments[] = $chunk;
+                $this->udpFragmentBytes += strlen($chunk);
+            }
+            try {
+                $assembled = $this->protocol->reassemble($this->udpFragments);
+            } catch (\Throwable) {
+                $assembled = null; // broken reassemble = keep waiting; timeout finishes us
+            }
             if ($assembled === null) {
                 return; // more datagrams expected
             }
@@ -177,7 +191,13 @@ final class QuerySession
 
         $this->readBuffer .= $chunk;
 
-        if (!$this->protocol->isResponseComplete($this->readBuffer)) {
+        try {
+            $complete = $this->protocol->isResponseComplete($this->readBuffer);
+        } catch (\Throwable) {
+            $complete = false; // treat a framing-check throw as "need more"
+        }
+
+        if (!$complete) {
             return; // TCP: keep accumulating until the framed packet is whole
         }
 
@@ -232,6 +252,7 @@ final class QuerySession
         }
         $this->readBuffer = '';
         $this->udpFragments = []; // discard any partial fragments from a prior attempt
+        $this->udpFragmentBytes = 0;
 
         // Query packets here are all well under typical socket buffer sizes
         // (a few hundred bytes at most), so a single fwrite() reliably

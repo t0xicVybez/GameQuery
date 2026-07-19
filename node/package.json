@@ -21,6 +21,7 @@
     "build": "tsc",
     "test": "tsc && node dist/tests/smoke.test.js",
     "test:integration": "tsc && node dist/tests/integration.test.js",
+    "fuzz": "tsc && node dist/tests/fuzz.test.js",
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
