@@ -5,6 +5,31 @@ All notable changes to GameQuery are documented here. The format follows
 [Semantic Versioning](https://semver.org/). The PHP (`t0xicvybez/gamequery`) and
 Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
 
+## [0.3.0] - 2026-07-19
+
+### Added
+- **`minecraft-query`** protocol — the Java `enable-query` (GameSpy4/UT3) UDP
+  query, which returns the *full* player list unlike SLP's truncated sample.
+  Implemented to spec with crafted-packet tests; validate against a live
+  `enable-query=true` server before relying on it.
+- **`minecraft-ping`** — Minecraft with the SLP 0x01 ping/pong, reporting the
+  round trip as `data.ping_ms` (a purer network latency than connect+status).
+- **A2S multi-packet reassembly** — large split `A2S_RULES` replies are now
+  reassembled by packet number across datagrams (order-independent). Verified
+  against a live server returning 120 cvars. bzip2-compressed legacy splits are
+  detected and skipped (no bundled bzip2).
+- **`GameQuery::queryWithPortProbe()`** — try a base port plus offsets and return
+  the first that answers, for Source games whose query port is offset from the
+  game port.
+
+### Fixed
+- **Node: a UDP query could crash the process** — after the 0.2.0 connected-dgram
+  change, a retry/timeout during the connect window called `send()` on the
+  not-yet-connected socket, throwing synchronously. Guarded.
+- **Ping-timing parity** — the PHP port started the ping clock at socket open
+  (including TCP connect time) while Node started it at first send; PHP now
+  starts it at first send too, so `pingMs` means the same thing in both ports.
+
 ## [0.2.0] - 2026-07-18
 
 ### Added
@@ -51,6 +76,7 @@ Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
   id Tech families, Mumble, TeamSpeak 3, Frostbite, Assetto Corsa, Terraria,
   SA-MP/open.mp), concurrent multi-server polling, and a JSON CLI.
 
+[0.3.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/t0xicVybez/GameQuery/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/t0xicVybez/GameQuery/releases/tag/v0.1.0

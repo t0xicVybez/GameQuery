@@ -16,7 +16,7 @@ the same API, and the same results.
 - **Concurrent by design.** One event loop drives every server's query at once,
   so polling 25 servers takes about as long as the single slowest one — not the
   sum of all of them.
-- **21 protocol families / 30 registered keys**, covering A2S/Source, both
+- **22 protocol families / 32 registered keys**, covering A2S/Source, both
   Minecraft editions, FiveM, Palworld, the GameSpy and id Tech families, voice
   servers, and more (full table below).
 - **Never throws for an unreachable server.** Every query returns a `Result`;
@@ -105,6 +105,8 @@ const one = await GameQuery.queryOne('source', '127.0.0.1:27015');
   `CONFIG_ERROR`) — switch on it instead of matching the human `error` string.
 - **`maxConcurrent`** — an optional third constructor arg caps how many sockets
   are open at once (`new GameQuery(2000, 1, 256)`); use it for large fleets.
+- **`queryWithPortProbe()`** — try a base port plus offsets and return the first that answers (for Source games whose query port is offset from the game port).
+- **`queryOne()`** — query a single server without the addServer()/process() ceremony.
 - **`toArray()` / `toObject()`** — both serialize the result (the CLI's JSON shape).
 
 Results come back in add order, one per server. `data` holds whatever the
@@ -112,15 +114,16 @@ protocol parsed — see each protocol class's `parse()` for its exact fields.
 
 ## Supported protocols
 
-**21 protocol families / 30 registered keys**, identical across both ports.
+**22 protocol families / 32 registered keys**, identical across both ports.
 Parenthesised keys are aliases or variants (e.g. `source-players` adds the
 player list, `-info` variants skip it).
 
 | Key | Family / games | Transport |
 |-----|----------------|-----------|
 | `source` (`source-players`, `source-full`) | Source / A2S — CS2, TF2, Rust, ARK, GMod, SCUM, most Steamworks games | UDP |
-| `minecraft` | Minecraft: Java Edition (modern Server List Ping) | TCP |
+| `minecraft` (`minecraft-ping`) | Minecraft: Java Edition SLP (`-ping` adds 0x01 ping latency) | TCP |
 | `minecraft-legacy` | Minecraft: Java Edition (≤1.6 legacy ping) | TCP |
+| `minecraft-query` | Minecraft: Java `enable-query` (full player list) | UDP |
 | `bedrock` (`minecraft-bedrock`) | Minecraft: Bedrock Edition (RakNet) | UDP |
 | `fivem` (`fivem-info`) | FiveM / CFX (GTA V multiplayer) | TCP/HTTP |
 | `palworld` (`palworld-info`) | Palworld REST API | TCP/HTTP |
@@ -160,17 +163,17 @@ gamequery minecraft mc.example.com:25565
 gamequery --batch '[{"protocol":"source","address":"1.2.3.4:27015","id":"a"}]'
 ```
 
-The `--batch` form takes a JSON array and queries every entry concurrently. It's
-also the right choice when a password is involved: a `--password` flag is visible
-to anything that can run `ps` on the box, whereas the batch JSON is no more
-exposed than any other argument. The CLI always exits `0` (check the `online`
-field) unless there's a usage error.
+The `--batch` form takes a JSON array and queries every entry concurrently. When
+a password is involved, keep it off the process table: pass it via the
+`GAMEQUERY_PASSWORD` env var or `--password-stdin` rather than a `--password`
+flag (which is visible to anything that can run `ps`). The CLI always exits `0`
+(check the `online` field) unless there's a usage error.
 
 ## Architecture
 
 ```
 GameQuery                facade: addServer() / process()
-  ProtocolRegistry       name string -> protocol instance (30 keys)
+  ProtocolRegistry       name string -> protocol instance (32 keys)
   Server / Result        immutable value objects in, value objects out
   Transport/
     SocketManager        the concurrent event loop
@@ -215,15 +218,14 @@ exposes it via `Server::address()`. Protocols that don't opt in pay no cost.
 
 Kept deliberately honest — these are the edges worth knowing about:
 
-- **A2S multi-packet / compressed replies aren't reassembled.** A `source` query
-  whose response is split across several UDP datagrams (or bzip2-compressed) —
-  which in practice only happens to `A2S_RULES` on servers with a very large cvar
-  list — won't parse fully. `A2S_INFO` and `A2S_PLAYER` fit in one datagram for
-  essentially all real servers.
-- **Minecraft latency is round-trip-based.** `pingMs` for Minecraft is the
-  connect + status round trip rather than the protocol's dedicated ping/pong
-  packet. Accurate enough for "is it up and how far away," not for fine-grained
-  latency graphing.
+- **A2S bzip2-compressed splits aren't decompressed.** Multi-datagram
+  `A2S_RULES` replies (from servers with very large cvar lists) *are* reassembled
+  now; the rare bzip2-*compressed* split — a legacy GoldSource case — is detected
+  and skipped, since decompressing it would mean a bzip2 dependency.
+- **Minecraft `pingMs` is the status round trip.** For the `minecraft` protocol,
+  `pingMs` is the handshake + status round trip. If you want the protocol's
+  dedicated 0x01 ping as a purer network latency, use `minecraft-ping`, which
+  reports it as `data.ping_ms` (at the cost of one extra round trip).
 - **Palworld reads only, over `Content-Length` responses.** The read-only
   `info`/`players` GET endpoints are implemented; the mutating admin actions
   (kick/ban/shutdown) are intentionally out of scope. Response completion relies
