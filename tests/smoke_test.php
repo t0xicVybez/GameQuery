@@ -639,6 +639,16 @@ check('result name() accessor', $onlineResult->name() === 'Best Server');
 check('result map() accessor', $onlineResult->map() === 'de_dust2');
 check('result players()/maxPlayers()', $onlineResult->players() === 12 && $onlineResult->maxPlayers() === 32);
 check('result playerNames() flattens objects and bare strings', $onlineResult->playerNames() === ['alice', 'bob']);
+
+$a2sResult = new Result($taggedServer, true, 10.0, ['players_list' => [
+    ['index' => 0, 'name' => 'Neo', 'score' => 42, 'duration_sec' => 123.5],
+    ['name' => 'Trinity'],
+    'Morpheus',
+]]);
+$pl = $a2sResult->playerList();
+check('playerList() keeps score/duration for rich rows', $pl[0] === ['name' => 'Neo', 'score' => 42, 'duration_sec' => 123.5]);
+check('playerList() handles name-only objects', $pl[1] === ['name' => 'Trinity']);
+check('playerList() promotes bare strings', $pl[2] === ['name' => 'Morpheus']);
 check('result toArray()/toObject() parity', $onlineResult->toArray() === $onlineResult->toObject());
 check('result serialization carries error_code key', array_key_exists('error_code', $onlineResult->toArray()));
 

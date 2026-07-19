@@ -1,6 +1,13 @@
 import type { Server } from './Server.js';
 import type { ErrorCodeValue } from './ErrorCode.js';
 
+/** A connected player, normalized across protocols. Only `name` is guaranteed. */
+export interface PlayerInfo {
+  name: string;
+  score?: number;
+  durationSec?: number;
+}
+
 /**
  * The outcome of querying one server. Always produced — online or not.
  *
@@ -59,6 +66,32 @@ export class Result {
       }
     }
     return names;
+  }
+
+  /**
+   * Connected players as structured objects, normalized across protocols —
+   * `name` always, plus `score` / `durationSec` where the protocol reports them
+   * (A2S, Quake, GameSpy). Use playerNames() if you only want the names.
+   */
+  playerList(): PlayerInfo[] {
+    const list = this.data.players_list;
+    if (!Array.isArray(list)) return [];
+    const out: PlayerInfo[] = [];
+    for (const p of list) {
+      if (typeof p === 'string') {
+        out.push({ name: p });
+        continue;
+      }
+      if (p && typeof p === 'object') {
+        const o = p as Record<string, unknown>;
+        const player: PlayerInfo = { name: typeof o.name === 'string' ? o.name : '' };
+        if (typeof o.score === 'number') player.score = o.score;
+        const dur = o.duration_sec ?? o.duration ?? o.time;
+        if (typeof dur === 'number' && Number.isFinite(dur)) player.durationSec = dur;
+        out.push(player);
+      }
+    }
+    return out;
   }
 
   private toInt(v: unknown): number | null {

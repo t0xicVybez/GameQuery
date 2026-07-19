@@ -1,7 +1,7 @@
 /** Public API surface for the GameQuery Node/TypeScript library. */
 export { GameQuery } from './GameQuery.js';
 export { Server } from './Server.js';
-export { Result } from './Result.js';
+export { Result, type PlayerInfo } from './Result.js';
 export { ErrorCode, type ErrorCodeValue } from './ErrorCode.js';
 export { ProtocolRegistry, type ProtocolFactory } from './ProtocolRegistry.js';
 export { AbstractProtocol } from './protocol/AbstractProtocol.js';

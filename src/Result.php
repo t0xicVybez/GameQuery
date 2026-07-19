@@ -81,6 +81,42 @@ final class Result
     }
 
     /**
+     * Connected players as structured rows, normalized across protocols --
+     * 'name' always, plus 'score' / 'duration_sec' where the protocol reports
+     * them (A2S, Quake, GameSpy). Use playerNames() if you only want the names.
+     *
+     * @return list<array{name: string, score?: int, duration_sec?: float}>
+     */
+    public function playerList(): array
+    {
+        $list = $this->data['players_list'] ?? null;
+        if (!is_array($list)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($list as $p) {
+            if (is_string($p)) {
+                $out[] = ['name' => $p];
+                continue;
+            }
+            if (is_array($p)) {
+                $player = ['name' => is_string($p['name'] ?? null) ? $p['name'] : ''];
+                if (isset($p['score']) && is_int($p['score'])) {
+                    $player['score'] = $p['score'];
+                }
+                $dur = $p['duration_sec'] ?? $p['duration'] ?? $p['time'] ?? null;
+                if (is_int($dur) || is_float($dur)) {
+                    $player['duration_sec'] = (float) $dur;
+                }
+                $out[] = $player;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * Flat plain-array form (matches the JSON the CLI emits). Merges the raw
      * protocol data on top of the envelope fields.
      *

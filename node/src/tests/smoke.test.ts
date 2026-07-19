@@ -680,6 +680,20 @@ check(
   'result playerNames() flattens objects and bare strings',
   JSON.stringify(onlineResult.playerNames()) === JSON.stringify(['alice', 'bob']),
 );
+
+const a2sResult = new Result(taggedServer, true, 10, {
+  players_list: [{ index: 0, name: 'Neo', score: 42, duration_sec: 123.5 }, { name: 'Trinity' }, 'Morpheus'],
+});
+const pl = a2sResult.playerList();
+check(
+  'playerList() keeps score/duration for rich rows',
+  JSON.stringify(pl[0]) === JSON.stringify({ name: 'Neo', score: 42, durationSec: 123.5 }),
+);
+check(
+  'playerList() handles name-only objects',
+  JSON.stringify(pl[1]) === JSON.stringify({ name: 'Trinity' }),
+);
+check('playerList() promotes bare strings', JSON.stringify(pl[2]) === JSON.stringify({ name: 'Morpheus' }));
 check(
   'result toObject()/toArray() parity',
   JSON.stringify(onlineResult.toObject()) === JSON.stringify(onlineResult.toArray()),
