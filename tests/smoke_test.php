@@ -27,6 +27,7 @@ use GameQuery\Protocol\GameSpy2;
 use GameQuery\Protocol\GameSpy3;
 use GameQuery\Protocol\Minecraft;
 use GameQuery\Protocol\MinecraftLegacy;
+use GameQuery\Protocol\MinecraftQuery;
 use GameQuery\Protocol\Mumble;
 use GameQuery\Protocol\Palworld;
 use GameQuery\Protocol\Quake2;
@@ -575,6 +576,30 @@ $betaResponse = "\xFF" . pack('n', strlen($betaPayload) / 2) . $betaPayload;
 $betaParsed = $mcl->parse($mclServer, [['tag' => 'ping', 'request' => '', 'response' => $betaResponse]]);
 check('minecraft-legacy beta motd parsed', $betaParsed['name'] === 'A Beta Server');
 check('minecraft-legacy beta players parsed', $betaParsed['players'] === 3 && $betaParsed['max_players'] === 10);
+
+echo "\nMinecraft Query (full stat) parsing\n";
+
+$mcq = new MinecraftQuery();
+$mcqServer = new Server('minecraft-query', 'mc.example.com', 25565);
+
+$mcqChallenge = "\x09" . "\x00\x00\x00\x01" . "9513307\x00";
+$mcqNext = $mcq->nextStep($mcqServer, [['tag' => 'challenge', 'request' => '', 'response' => $mcqChallenge]]);
+check('mcquery full-stat request uses FE FD 00 header', str_starts_with($mcqNext['packet'], "\xFE\xFD\x00"));
+check('mcquery encodes the challenge big-endian', str_contains($mcqNext['packet'], pack('N', 9513307)));
+check('mcquery full-stat request ends with 4-byte null padding', str_ends_with($mcqNext['packet'], "\x00\x00\x00\x00"));
+
+$mcqResp = "\x00" . "\x00\x00\x00\x01" . "splitnum\x00\x80\x00"
+    . "hostname\x00A Minecraft Server\x00gametype\x00SMP\x00version\x001.21\x00map\x00world\x00numplayers\x002\x00maxplayers\x0020\x00"
+    . "\x00"
+    . "\x01player_\x00\x00"
+    . "Steve\x00Alex\x00"
+    . "\x00";
+$mcqParsed = $mcq->parse($mcqServer, [['tag' => 'info', 'request' => '', 'response' => $mcqResp]]);
+check('mcquery name parsed', $mcqParsed['name'] === 'A Minecraft Server');
+check('mcquery map parsed', $mcqParsed['map'] === 'world');
+check('mcquery player counts parsed', $mcqParsed['players'] === 2 && $mcqParsed['max_players'] === 20);
+check('mcquery version parsed', $mcqParsed['version'] === '1.21');
+check('mcquery full player list parsed', $mcqParsed['players_list'] === ['Steve', 'Alex']);
 
 echo "\nResult API: normalized accessors, error codes, serializer parity\n";
 

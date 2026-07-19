@@ -16,6 +16,7 @@ use GameQuery\Protocol\GameSpy2;
 use GameQuery\Protocol\GameSpy3;
 use GameQuery\Protocol\Minecraft;
 use GameQuery\Protocol\MinecraftLegacy;
+use GameQuery\Protocol\MinecraftQuery;
 use GameQuery\Protocol\Mumble;
 use GameQuery\Protocol\Palworld;
 use GameQuery\Protocol\ProtocolInterface;
@@ -52,6 +53,7 @@ final class ProtocolRegistry
             Bedrock::name() => static fn () => new Bedrock(),
             'minecraft-bedrock' => static fn () => new Bedrock(),
             MinecraftLegacy::name() => static fn () => new MinecraftLegacy(),
+            MinecraftQuery::name() => static fn () => new MinecraftQuery(),
             Palworld::name() => static fn () => new Palworld(),
             'palworld-info' => static fn () => new Palworld(includePlayers: false),
             FiveM::name() => static fn () => new FiveM(),

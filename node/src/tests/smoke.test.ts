@@ -24,6 +24,7 @@ import { Terraria } from '../protocol/Terraria.js';
 import { Samp } from '../protocol/Samp.js';
 import { QuakeWorld } from '../protocol/QuakeWorld.js';
 import { MinecraftLegacy } from '../protocol/MinecraftLegacy.js';
+import { MinecraftQuery } from '../protocol/MinecraftQuery.js';
 import { Result } from '../Result.js';
 import { ErrorCode } from '../ErrorCode.js';
 import type { HistoryEntry } from '../types.js';
@@ -576,6 +577,42 @@ const betap = mcl.parse(mclServer, hist('ping', betaResponse));
 check(
   'minecraft-legacy beta motd/players parsed',
   betap.name === 'A Beta Server' && betap.players === 3 && betap.max_players === 10,
+);
+
+console.log('\nMinecraft Query (full stat) parsing');
+const mcq = new MinecraftQuery();
+const mcqServer = new Server('minecraft-query', 'mc.example.com', 25565);
+const mcqChallenge = Buffer.concat([
+  Buffer.from([0x09, 0x00, 0x00, 0x00, 0x01]),
+  Buffer.from('9513307\x00', 'latin1'),
+]);
+const mcqNext = mcq.nextStep(mcqServer, hist('challenge', mcqChallenge));
+check(
+  'mcquery full-stat request uses FE FD 00 header',
+  mcqNext !== null && mcqNext.packet.subarray(0, 3).equals(Buffer.from([0xfe, 0xfd, 0x00])),
+);
+check(
+  'mcquery full-stat request ends with 4-byte null padding',
+  mcqNext !== null && mcqNext.packet.subarray(-4).equals(Buffer.from([0, 0, 0, 0])),
+);
+
+const mcqResp = Buffer.from(
+  '\x00\x00\x00\x00\x01splitnum\x00\x80\x00' +
+    'hostname\x00A Minecraft Server\x00gametype\x00SMP\x00version\x001.21\x00map\x00world\x00numplayers\x002\x00maxplayers\x0020\x00' +
+    '\x00' +
+    '\x01player_\x00\x00' +
+    'Steve\x00Alex\x00' +
+    '\x00',
+  'latin1',
+);
+const mcqParsed = mcq.parse(mcqServer, hist('info', mcqResp));
+check('mcquery name parsed', mcqParsed.name === 'A Minecraft Server');
+check('mcquery map parsed', mcqParsed.map === 'world');
+check('mcquery player counts parsed', mcqParsed.players === 2 && mcqParsed.max_players === 20);
+check('mcquery version parsed', mcqParsed.version === '1.21');
+check(
+  'mcquery full player list parsed',
+  JSON.stringify(mcqParsed.players_list) === JSON.stringify(['Steve', 'Alex']),
 );
 
 console.log('\nResult API: normalized accessors, error codes, serializer parity');
