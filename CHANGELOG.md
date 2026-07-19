@@ -10,8 +10,8 @@ Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
 ### Added
 - **`minecraft-query`** protocol — the Java `enable-query` (GameSpy4/UT3) UDP
   query, which returns the *full* player list unlike SLP's truncated sample.
-  Implemented to spec with crafted-packet tests; validate against a live
-  `enable-query=true` server before relying on it.
+  Crafted-packet tests plus live verification against a vanilla server with
+  `enable-query=true`.
 - **`minecraft-ping`** — Minecraft with the SLP 0x01 ping/pong, reporting the
   round trip as `data.ping_ms` (a purer network latency than connect+status).
 - **A2S multi-packet reassembly** — large split `A2S_RULES` replies are now
