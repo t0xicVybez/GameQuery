@@ -29,6 +29,7 @@ export class QuerySession {
 
   private done = false;
   private online = false;
+  private udpConnected = false;
   private error: string | null = null;
   private errorCode: ErrorCodeValue | null = null;
   private resolveFn: ((r: Result) => void) | null = null;
@@ -107,6 +108,7 @@ export class QuerySession {
     // also resolves the host, so send() below needs no address.
     sock.connect(this.server.port, this.server.host, () => {
       if (this.done) return;
+      this.udpConnected = true;
       this.firstSend = this.now();
       this.arm();
       this.sendCurrent();
@@ -179,6 +181,10 @@ export class QuerySession {
     if (this.socket === null) return;
     this.readBuffer = Buffer.alloc(0);
     if (this.isUdp()) {
+      // Never send before connect() has associated the peer — send() on an
+      // unconnected socket throws synchronously. A retry that fires during the
+      // connect window is a safe no-op; the connect callback sends once ready.
+      if (!this.udpConnected) return;
       // The socket is connect()ed, so send() takes no address.
       (this.socket as dgram.Socket).send(this.currentPacket, (err) => {
         if (err) this.finishSoft(this.history.length ? null : 'send failed', ErrorCode.UNREACHABLE);
