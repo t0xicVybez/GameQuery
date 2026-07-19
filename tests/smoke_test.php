@@ -648,6 +648,19 @@ check('satisfactory name parsed', $sfParsed['name'] === 'My Factory Server');
 check('satisfactory state decoded', $sfParsed['state'] === 'playing');
 check('satisfactory net CL / version parsed', $sfParsed['net_cl'] === 368883 && $sfParsed['version'] === '368883');
 
+echo "\nSteam master-server batch parsing\n";
+
+$masterResp = "\xFF\xFF\xFF\xFF\x66\x0A"
+    . "\xC0\xA8\x01\x0A" . pack('n', 27015)   // 192.168.1.10:27015
+    . "\x0A\x00\x00\x05" . pack('n', 28015)   // 10.0.0.5:28015
+    . "\x00\x00\x00\x00\x00\x00";              // 0.0.0.0:0 terminator
+$batch = GameQuery\SteamMaster::parseBatch($masterResp);
+check('steam master parses server entries', $batch['servers'] === ['192.168.1.10:27015', '10.0.0.5:28015']);
+check('steam master detects end-of-list terminator', $batch['done'] === true);
+check('steam master tracks last entry for paging', $batch['last'] === '10.0.0.5:28015');
+$emptyBatch = GameQuery\SteamMaster::parseBatch('garbage');
+check('steam master rejects a bad header', $emptyBatch['servers'] === [] && $emptyBatch['done'] === true);
+
 echo "\nResult API: normalized accessors, error codes, serializer parity\n";
 
 $taggedServer = new Server('source', '1.2.3.4', 27015, id: 'my-tag');

@@ -1,6 +1,7 @@
 import { ProtocolRegistry, type ProtocolFactory } from './ProtocolRegistry.js';
 import { Server } from './Server.js';
 import { SocketManager, type Job } from './transport/SocketManager.js';
+import { SteamMaster, type SteamMasterOptions } from './SteamMaster.js';
 import type { Result } from './Result.js';
 
 /**
@@ -119,6 +120,20 @@ export class GameQuery {
 
     const results = await gq.process();
     return results.find((r) => r.online) ?? results[0]!;
+  }
+
+  /**
+   * Discover Source/A2S servers via the Steam master server (a LIST, not a
+   * single-server query). Returns "ip:port" strings to feed into
+   * addServer('source', …). Filter uses Valve's backslash syntax, e.g.
+   * '\\appid\\730'. See SteamMaster for details.
+   */
+  static listServers(
+    filter = '',
+    region: number = SteamMaster.REGION_ALL,
+    options: SteamMasterOptions = {},
+  ): Promise<string[]> {
+    return SteamMaster.listServers(filter, region, options);
   }
 
   reset(): this {

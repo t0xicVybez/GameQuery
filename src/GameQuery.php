@@ -166,6 +166,20 @@ final class GameQuery
         return $results[0];
     }
 
+    /**
+     * Discover Source/A2S servers via the Steam master server (a LIST, not a
+     * single-server query). Returns "ip:port" strings to feed into
+     * addServer('source', ...). Filter uses Valve's backslash syntax, e.g.
+     * '\appid\730'. See SteamMaster for details.
+     *
+     * @param array{master?: string, masterPort?: int, timeoutMs?: int, maxServers?: int, maxPages?: int} $options
+     * @return list<string>
+     */
+    public static function listServers(string $filter = '', int $region = SteamMaster::REGION_ALL, array $options = []): array
+    {
+        return SteamMaster::listServers($filter, $region, $options);
+    }
+
     /** Clears the queued server list so the same GameQuery instance can be reused for another batch. */
     public function reset(): self
     {

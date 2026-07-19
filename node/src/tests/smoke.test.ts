@@ -26,6 +26,7 @@ import { QuakeWorld } from '../protocol/QuakeWorld.js';
 import { MinecraftLegacy } from '../protocol/MinecraftLegacy.js';
 import { MinecraftQuery } from '../protocol/MinecraftQuery.js';
 import { Satisfactory } from '../protocol/Satisfactory.js';
+import { SteamMaster } from '../SteamMaster.js';
 import { Result } from '../Result.js';
 import { ErrorCode } from '../ErrorCode.js';
 import type { HistoryEntry } from '../types.js';
@@ -686,6 +687,30 @@ const sfParsed = sf.parse(sfServer, hist('state', sfResp));
 check('satisfactory name parsed', sfParsed.name === 'My Factory Server');
 check('satisfactory state decoded', sfParsed.state === 'playing');
 check('satisfactory net CL / version parsed', sfParsed.net_cl === 368883 && sfParsed.version === '368883');
+
+console.log('\nSteam master-server batch parsing');
+const portBE = (n: number): Buffer => {
+  const b = Buffer.alloc(2);
+  b.writeUInt16BE(n);
+  return b;
+};
+const masterResp = Buffer.concat([
+  Buffer.from([0xff, 0xff, 0xff, 0xff, 0x66, 0x0a]),
+  Buffer.from([192, 168, 1, 10]),
+  portBE(27015),
+  Buffer.from([10, 0, 0, 5]),
+  portBE(28015),
+  Buffer.from([0, 0, 0, 0, 0, 0]),
+]);
+const batch = SteamMaster.parseBatch(masterResp);
+check(
+  'steam master parses server entries',
+  JSON.stringify(batch.servers) === JSON.stringify(['192.168.1.10:27015', '10.0.0.5:28015']),
+);
+check('steam master detects end-of-list terminator', batch.done === true);
+check('steam master tracks last entry for paging', batch.last === '10.0.0.5:28015');
+const emptyBatch = SteamMaster.parseBatch(Buffer.from('garbage'));
+check('steam master rejects a bad header', emptyBatch.servers.length === 0 && emptyBatch.done === true);
 
 console.log('\nResult API: normalized accessors, error codes, serializer parity');
 const taggedServer = new Server('source', '1.2.3.4', 27015, 'my-tag');

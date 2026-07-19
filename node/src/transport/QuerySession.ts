@@ -160,7 +160,7 @@ export class QuerySession {
         this.udpFragments.push(chunk);
         this.udpFragmentBytes += chunk.length;
       }
-      let assembled: Buffer | null = null;
+      let assembled: Buffer | null;
       try {
         assembled = this.protocol.reassemble(this.udpFragments);
       } catch {
@@ -172,7 +172,7 @@ export class QuerySession {
       return;
     }
     this.readBuffer = this.isUdp() ? chunk : Buffer.concat([this.readBuffer, chunk]);
-    let complete = false;
+    let complete: boolean;
     try {
       complete = this.protocol.isResponseComplete(this.readBuffer);
     } catch {
