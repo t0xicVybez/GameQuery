@@ -84,7 +84,11 @@ final class QuerySession
         }
 
         $transport = $this->protocol->transport();
-        $address = sprintf('%s://%s:%d', $transport, $this->server->host, $this->server->port);
+        // stream_socket_client needs IPv6 literals bracketed: udp://[::1]:27015.
+        $hostForStream = str_contains($this->server->host, ':')
+            ? '[' . $this->server->host . ']'
+            : $this->server->host;
+        $address = sprintf('%s://%s:%d', $transport, $hostForStream, $this->server->port);
 
         $errno = 0;
         $errstr = '';

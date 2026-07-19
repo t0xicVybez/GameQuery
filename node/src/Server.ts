@@ -26,19 +26,33 @@ export class Server {
     return this.resolvedIp ?? this.host;
   }
 
-  /** Parse a `host:port` string into a Server. */
+  /** Parse a `host:port` string (or `[ipv6]:port`) into a Server. */
   static fromAddress(
     protocol: string,
     address: string,
     id: unknown = null,
     options: Record<string, unknown> = {},
   ): Server {
-    const idx = address.lastIndexOf(':');
-    if (idx <= 0 || idx === address.length - 1) {
-      throw new Error(`Address '${address}' must be in host:port form`);
+    let host: string;
+    let portStr: string;
+    if (address.startsWith('[')) {
+      // Bracketed IPv6, e.g. [::1]:27015 — brackets are stripped from the host.
+      const rb = address.indexOf(']');
+      if (rb === -1 || address[rb + 1] !== ':') {
+        throw new Error(`Address '${address}' must be in [ipv6]:port form`);
+      }
+      host = address.slice(1, rb);
+      portStr = address.slice(rb + 2);
+    } else {
+      // Split on the last colon so an unbracketed IPv6-with-port still works.
+      const idx = address.lastIndexOf(':');
+      if (idx <= 0 || idx === address.length - 1) {
+        throw new Error(`Address '${address}' must be in host:port form`);
+      }
+      host = address.slice(0, idx);
+      portStr = address.slice(idx + 1);
     }
-    const host = address.slice(0, idx);
-    const port = Number(address.slice(idx + 1));
+    const port = Number(portStr);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       throw new Error(`Address '${address}' has an invalid port`);
     }

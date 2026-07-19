@@ -217,17 +217,26 @@ export class QuerySession {
     this.readBuffer = Buffer.alloc(0);
     this.udpFragments = []; // discard any partial fragments from a prior attempt
     this.udpFragmentBytes = 0;
-    if (this.isUdp()) {
-      // Never send before connect() has associated the peer — send() on an
-      // unconnected socket throws synchronously. A retry that fires during the
-      // connect window is a safe no-op; the connect callback sends once ready.
-      if (!this.udpConnected) return;
-      // The socket is connect()ed, so send() takes no address.
-      (this.socket as dgram.Socket).send(this.currentPacket, (err) => {
-        if (err) this.finishSoft(this.history.length ? null : 'send failed', ErrorCode.UNREACHABLE);
-      });
-    } else {
-      (this.socket as net.Socket).write(this.currentPacket);
+    try {
+      if (this.isUdp()) {
+        // Never send before connect() has associated the peer — send() on an
+        // unconnected socket throws synchronously. A retry that fires during the
+        // connect window is a safe no-op; the connect callback sends once ready.
+        if (!this.udpConnected) return;
+        // The socket is connect()ed, so send() takes no address.
+        (this.socket as dgram.Socket).send(this.currentPacket, (err) => {
+          if (err) this.finishSoft(this.history.length ? null : 'send failed', ErrorCode.UNREACHABLE);
+        });
+      } else {
+        (this.socket as net.Socket).write(this.currentPacket);
+      }
+    } catch (err) {
+      // A synchronous throw from send()/write() (e.g. an odd socket state on a
+      // host with no IPv6) must never crash the process — report offline.
+      this.finishSoft(
+        this.history.length ? null : err instanceof Error ? err.message : 'send failed',
+        ErrorCode.UNREACHABLE,
+      );
     }
   }
 

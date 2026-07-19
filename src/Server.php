@@ -65,16 +65,32 @@ final class Server
         return $this->resolvedIp ?? $this->host;
     }
 
-    /** Convenience factory for the common "host:port" shorthand. */
+    /** Convenience factory for the "host:port" (or "[ipv6]:port") shorthand. */
     public static function fromAddress(string $protocol, string $address, mixed $id = null, array $options = []): self
     {
-        if (!str_contains($address, ':')) {
-            throw new GameQueryException("Address '{$address}' must be in host:port form");
+        if (str_starts_with($address, '[')) {
+            // Bracketed IPv6, e.g. [::1]:27015 -- brackets are stripped from the host.
+            $rb = strpos($address, ']');
+            if ($rb === false || ($address[$rb + 1] ?? '') !== ':') {
+                throw new GameQueryException("Address '{$address}' must be in [ipv6]:port form");
+            }
+            $host = substr($address, 1, $rb - 1);
+            $portStr = substr($address, $rb + 2);
+        } else {
+            // Split on the last colon so an unbracketed IPv6-with-port still works.
+            $pos = strrpos($address, ':');
+            if ($pos === false || $pos === 0 || $pos === strlen($address) - 1) {
+                throw new GameQueryException("Address '{$address}' must be in host:port form");
+            }
+            $host = substr($address, 0, $pos);
+            $portStr = substr($address, $pos + 1);
         }
 
-        [$host, $port] = explode(':', $address, 2);
+        if (!ctype_digit($portStr)) {
+            throw new GameQueryException("Address '{$address}' has an invalid port");
+        }
 
-        return new self($protocol, $host, (int) $port, $id, $options);
+        return new self($protocol, $host, (int) $portStr, $id, $options);
     }
 
     /** Human-readable identifier for logs/errors -- the caller id, or host:port. */

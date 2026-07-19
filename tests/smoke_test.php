@@ -631,6 +631,13 @@ $taggedServer = new Server('source', '1.2.3.4', 27015, id: 'my-tag');
 check('server label uses id when present', $taggedServer->label() === 'my-tag');
 check('server label falls back to host:port', (new Server('source', '1.2.3.4', 27015))->label() === '1.2.3.4:27015');
 
+$v6 = Server::fromAddress('source', '[::1]:27015');
+check('fromAddress parses bracketed IPv6 (brackets stripped)', $v6->host === '::1' && $v6->port === 27015);
+$v6b = Server::fromAddress('bedrock', '[2001:db8::1]:19132');
+check('fromAddress parses a full IPv6 literal', $v6b->host === '2001:db8::1' && $v6b->port === 19132);
+check('fromAddress still parses IPv4', Server::fromAddress('source', '1.2.3.4:27015')->host === '1.2.3.4');
+check('fromAddress still parses a hostname', Server::fromAddress('minecraft', 'mc.example.com:25565')->port === 25565);
+
 $onlineResult = new Result($taggedServer, true, 42.5, [
     'name' => 'Best Server', 'map' => 'de_dust2', 'players' => 12, 'max_players' => 32,
     'players_list' => [['name' => 'alice', 'score' => 3], 'bob', ['noname' => 1]],
