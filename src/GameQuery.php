@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace GameQuery;
 
+use GameQuery\Exception\GameQueryException;
+
 /**
  * Entry point for the library.
  *
@@ -62,6 +64,22 @@ final class GameQuery
     {
         $this->servers[] = $server;
         return $this;
+    }
+
+    /**
+     * Add a server by game id ("rust", "cs2", "minecraft"), resolving the
+     * protocol and default port from the game database. Pass $port to override.
+     *
+     * @param array<string,mixed> $options
+     */
+    public function addGame(string $game, string $host, ?int $port = null, mixed $id = null, array $options = []): self
+    {
+        $info = Games::info($game);
+        if ($info === null) {
+            throw new GameQueryException("Unknown game '{$game}'. See Games::GAMES for supported ids.");
+        }
+
+        return $this->addServer($info['protocol'], "{$host}:" . ($port ?? $info['port']), $id, $options);
     }
 
     /** Register a custom protocol implementation under a name for use with addServer(). */
@@ -152,6 +170,24 @@ final class GameQuery
         $gq = new self($config['timeoutMs'] ?? 2000, $config['retries'] ?? 1);
         $gq->addServer($protocol, $address, null, $options);
         return $gq->process()[0];
+    }
+
+    /**
+     * Query a single server by game id ("rust", "cs2", ...) without knowing its
+     * protocol. Resolves the protocol + default port from the game database;
+     * pass $port to override.
+     *
+     * @param array<string,mixed> $options
+     * @param array{timeoutMs?: int, retries?: int} $config
+     */
+    public static function queryGame(string $game, string $host, ?int $port = null, array $options = [], array $config = []): Result
+    {
+        $info = Games::info($game);
+        if ($info === null) {
+            throw new GameQueryException("Unknown game '{$game}'. See Games::GAMES for supported ids.");
+        }
+
+        return self::queryOne($info['protocol'], "{$host}:" . ($port ?? $info['port']), $options, $config);
     }
 
     /**

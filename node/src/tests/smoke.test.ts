@@ -27,6 +27,8 @@ import { MinecraftLegacy } from '../protocol/MinecraftLegacy.js';
 import { MinecraftQuery } from '../protocol/MinecraftQuery.js';
 import { Satisfactory } from '../protocol/Satisfactory.js';
 import { SteamMaster } from '../SteamMaster.js';
+import { gameInfo } from '../Games.js';
+import { GameQuery } from '../GameQuery.js';
 import { Result } from '../Result.js';
 import { ErrorCode } from '../ErrorCode.js';
 import type { HistoryEntry } from '../types.js';
@@ -730,6 +732,23 @@ check('steam master detects end-of-list terminator', batch.done === true);
 check('steam master tracks last entry for paging', batch.last === '10.0.0.5:28015');
 const emptyBatch = SteamMaster.parseBatch(Buffer.from('garbage'));
 check('steam master rejects a bad header', emptyBatch.servers.length === 0 && emptyBatch.done === true);
+
+console.log('\nGame database lookup + addGame resolution');
+check(
+  'gameInfo resolves rust -> source:28015',
+  JSON.stringify(gameInfo('rust')) === JSON.stringify({ protocol: 'source', port: 28015, name: 'Rust' }),
+);
+check('gameInfo is case-insensitive', gameInfo('RUST') !== null);
+check('gameInfo returns null for an unknown game', gameInfo('nope') === null);
+const gameSrv = new GameQuery().addGame('minecraft', 'mc.example.com').getServers()[0];
+check(
+  'addGame resolves protocol + default port',
+  gameSrv?.protocol === 'minecraft' && gameSrv?.port === 25565,
+);
+check(
+  'addGame honors a port override',
+  new GameQuery().addGame('rust', 'h', 12345).getServers()[0]?.port === 12345,
+);
 
 console.log('\nResult API: normalized accessors, error codes, serializer parity');
 const taggedServer = new Server('source', '1.2.3.4', 27015, 'my-tag');

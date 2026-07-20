@@ -40,6 +40,23 @@ if [ "$php_classes" != "$ts_classes" ]; then
     exit 1
 fi
 
+php_games=$(php -r '
+    require "autoload.php";
+    $g = GameQuery\Games::GAMES;
+    ksort($g);
+    foreach ($g as $k => $v) { echo $k . "=" . $v["protocol"] . ":" . $v["port"] . "\n"; }
+')
+ts_games=$(node --input-type=module -e '
+    import { GAMES } from "./node/dist/Games.js";
+    for (const g of Object.keys(GAMES).sort()) console.log(`${g}=${GAMES[g].protocol}:${GAMES[g].port}`);
+')
+if [ "$php_games" != "$ts_games" ]; then
+    echo "PARITY FAIL: game database differs between PHP and Node"
+    diff <(echo "$php_games") <(echo "$ts_games") || true
+    exit 1
+fi
+
 key_count=$(echo "$php_keys" | grep -c . || true)
 class_count=$(echo "$php_classes" | grep -c . || true)
-echo "PARITY OK: ${key_count} registry keys and ${class_count} protocol classes match across both ports"
+game_count=$(echo "$php_games" | grep -c . || true)
+echo "PARITY OK: ${key_count} registry keys, ${class_count} protocol classes, ${game_count} games match across both ports"

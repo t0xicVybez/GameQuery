@@ -2,6 +2,7 @@ import { ProtocolRegistry, type ProtocolFactory } from './ProtocolRegistry.js';
 import { Server } from './Server.js';
 import { SocketManager, type Job } from './transport/SocketManager.js';
 import { SteamMaster, type SteamMasterOptions } from './SteamMaster.js';
+import { gameInfo } from './Games.js';
 import type { Result } from './Result.js';
 
 /**
@@ -48,6 +49,22 @@ export class GameQuery {
   addServerObject(server: Server): this {
     this.servers.push(server);
     return this;
+  }
+
+  /**
+   * Add a server by game id ("rust", "cs2", "minecraft"), resolving the protocol
+   * and default port from the game database. Pass `port` to override the default.
+   */
+  addGame(
+    game: string,
+    host: string,
+    port: number | null = null,
+    id: unknown = null,
+    options: Record<string, unknown> = {},
+  ): this {
+    const info = gameInfo(game);
+    if (!info) throw new Error(`Unknown game '${game}'. See the GAMES map for supported ids.`);
+    return this.addServer(info.protocol, `${host}:${port ?? info.port}`, id, options);
   }
 
   registerProtocol(name: string, factory: ProtocolFactory): this {
@@ -108,6 +125,23 @@ export class GameQuery {
     const gq = new GameQuery(config.timeoutMs ?? 2000, config.retries ?? 1);
     gq.addServer(protocol, address, null, options);
     return (await gq.process())[0]!;
+  }
+
+  /**
+   * Query a single server by game id ("rust", "cs2", …) without knowing its
+   * protocol. Resolves the protocol + default port from the game database; pass
+   * `port` to override.
+   */
+  static queryGame(
+    game: string,
+    host: string,
+    port?: number,
+    options: Record<string, unknown> = {},
+    config: { timeoutMs?: number; retries?: number } = {},
+  ): Promise<Result> {
+    const info = gameInfo(game);
+    if (!info) throw new Error(`Unknown game '${game}'. See the GAMES map for supported ids.`);
+    return GameQuery.queryOne(info.protocol, `${host}:${port ?? info.port}`, options, config);
   }
 
   /**

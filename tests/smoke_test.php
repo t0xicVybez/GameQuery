@@ -41,6 +41,9 @@ use GameQuery\Protocol\Terraria;
 use GameQuery\Protocol\Unreal2;
 use GameQuery\Result;
 use GameQuery\Server;
+use GameQuery\Games;
+use GameQuery\GameQuery;
+use GameQuery\SteamMaster;
 
 $failures = 0;
 $passed = 0;
@@ -666,12 +669,22 @@ $masterResp = "\xFF\xFF\xFF\xFF\x66\x0A"
     . "\xC0\xA8\x01\x0A" . pack('n', 27015)   // 192.168.1.10:27015
     . "\x0A\x00\x00\x05" . pack('n', 28015)   // 10.0.0.5:28015
     . "\x00\x00\x00\x00\x00\x00";              // 0.0.0.0:0 terminator
-$batch = GameQuery\SteamMaster::parseBatch($masterResp);
+$batch = SteamMaster::parseBatch($masterResp);
 check('steam master parses server entries', $batch['servers'] === ['192.168.1.10:27015', '10.0.0.5:28015']);
 check('steam master detects end-of-list terminator', $batch['done'] === true);
 check('steam master tracks last entry for paging', $batch['last'] === '10.0.0.5:28015');
-$emptyBatch = GameQuery\SteamMaster::parseBatch('garbage');
+$emptyBatch = SteamMaster::parseBatch('garbage');
 check('steam master rejects a bad header', $emptyBatch['servers'] === [] && $emptyBatch['done'] === true);
+
+echo "\nGame database lookup + addGame resolution\n";
+
+check('game info resolves rust -> source:28015', Games::info('rust') === ['protocol' => 'source', 'port' => 28015, 'name' => 'Rust']);
+check('game info is case-insensitive', Games::info('RUST') !== null);
+check('game info returns null for an unknown game', Games::info('nope') === null);
+$gqGame = (new GameQuery())->addGame('minecraft', 'mc.example.com');
+$gameSrv = $gqGame->getServers()[0];
+check('addGame resolves protocol + default port', $gameSrv->protocol === 'minecraft' && $gameSrv->port === 25565);
+check('addGame honors a port override', (new GameQuery())->addGame('rust', 'h', 12345)->getServers()[0]->port === 12345);
 
 echo "\nResult API: normalized accessors, error codes, serializer parity\n";
 
