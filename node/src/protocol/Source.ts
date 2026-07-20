@@ -39,8 +39,9 @@ export class Source extends AbstractProtocol {
    * Reassemble a split A2S reply. A single-packet reply (0xFFFFFFFF header) is
    * returned as-is; a split reply (0xFFFFFFFE) is collected by packet number
    * across datagrams and its payloads concatenated once all `Total` arrive.
-   * Assumes the modern Source split header (with the 2-byte Size field); bzip2-
-   * compressed splits (legacy GoldSource) aren't decompressed.
+   * Assumes the modern Source split header (with the 2-byte Size field). bzip2-
+   * compressed splits are decompressed when a decompressor has been supplied via
+   * setBzip2Decompressor() (otherwise the reply degrades gracefully).
    */
   reassemble(fragments: Buffer[]): Buffer | null {
     const first = fragments[0];
@@ -56,13 +57,17 @@ export class Source extends AbstractProtocol {
     let compressed = false;
     for (const frag of fragments) {
       if (frag.length < 12 || frag.readUInt32LE(0) !== 0xfffffffe) continue;
-      if (frag.readUInt32LE(4) >= 0x80000000) compressed = true; // high bit = bzip2
+      const isCompressed = frag.readUInt32LE(4) >= 0x80000000; // high bit = bzip2
+      if (isCompressed) compressed = true;
       total = frag.readUInt8(8);
       const number = frag.readUInt8(9);
-      payloads.set(number, frag.subarray(12)); // skip header(4)+id(4)+total(1)+number(1)+size(2)
+      // header(4)+id(4)+total(1)+number(1)+size(2); a compressed reply also
+      // carries decompressed-size(4)+CRC(4) in packet 0.
+      const payloadStart = isCompressed && number === 0 && frag.length >= 20 ? 20 : 12;
+      payloads.set(number, frag.subarray(payloadStart));
     }
 
-    if (compressed || total === 0) return first; // can't reassemble; parse() degrades gracefully
+    if (total === 0) return first;
     if (payloads.size < total) return null; // still waiting for datagrams
 
     const parts: Buffer[] = [];
@@ -71,7 +76,24 @@ export class Source extends AbstractProtocol {
       if (!part) return null;
       parts.push(part);
     }
-    return Buffer.concat(parts);
+    const assembled = Buffer.concat(parts);
+
+    if (compressed) {
+      const decompressed = Source.bzip2Decompressor ? Source.bzip2Decompressor(assembled) : null;
+      return decompressed ?? first; // degrade gracefully without a decompressor
+    }
+    return assembled;
+  }
+
+  private static bzip2Decompressor: ((data: Buffer) => Buffer | null) | null = null;
+
+  /**
+   * Supply a bzip2 decompressor so compressed A2S_RULES splits can be read. Node
+   * has no built-in bzip2 (this library stays dependency-free), so bring your
+   * own, e.g. `Source.setBzip2Decompressor((d) => seekBzip.decode(d))`.
+   */
+  static setBzip2Decompressor(fn: ((data: Buffer) => Buffer | null) | null): void {
+    Source.bzip2Decompressor = fn;
   }
 
   initialStep(_server: Server): Step {

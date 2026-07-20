@@ -61,8 +61,9 @@ final class Source extends AbstractProtocol
      * Reassemble a split A2S reply. A single-packet reply (0xFFFFFFFF header) is
      * returned as-is; a split reply (0xFFFFFFFE) is collected by packet number
      * across datagrams and its payloads concatenated once all `Total` arrive.
-     * Assumes the modern Source split header (with the 2-byte Size field);
-     * bzip2-compressed splits (legacy GoldSource) aren't decompressed.
+     * Assumes the modern Source split header (with the 2-byte Size field).
+     * bzip2-compressed splits are decompressed when the bz2 extension is
+     * available (otherwise the reply degrades gracefully to partial data).
      *
      * @param list<string> $fragments
      */
@@ -85,16 +86,18 @@ final class Source extends AbstractProtocol
             if (strlen($frag) < 12 || unpack('V', substr($frag, 0, 4))[1] !== 0xFFFFFFFE) {
                 continue;
             }
-            if (unpack('V', substr($frag, 4, 4))[1] >= 0x80000000) {
-                $compressed = true; // high bit = bzip2
-            }
+            $isCompressed = unpack('V', substr($frag, 4, 4))[1] >= 0x80000000; // high bit = bzip2
+            $compressed = $compressed || $isCompressed;
             $total = ord($frag[8]);
             $number = ord($frag[9]);
-            $payloads[$number] = substr($frag, 12); // skip header(4)+id(4)+total(1)+number(1)+size(2)
+            // header(4)+id(4)+total(1)+number(1)+size(2); a compressed reply also
+            // carries decompressed-size(4)+CRC(4) in packet 0.
+            $payloadStart = ($isCompressed && $number === 0 && strlen($frag) >= 20) ? 20 : 12;
+            $payloads[$number] = substr($frag, $payloadStart);
         }
 
-        if ($compressed || $total === 0) {
-            return $first; // can't reassemble; parse() degrades gracefully
+        if ($total === 0) {
+            return $first;
         }
         if (count($payloads) < $total) {
             return null; // still waiting for datagrams
@@ -108,7 +111,23 @@ final class Source extends AbstractProtocol
             $parts .= $payloads[$i];
         }
 
+        if ($compressed) {
+            $decompressed = $this->decompressBzip2($parts);
+            return $decompressed ?? $first; // degrade gracefully if bz2 is unavailable
+        }
+
         return $parts;
+    }
+
+    /** Decompress a bzip2 A2S payload via the bz2 extension when present; null otherwise. */
+    private function decompressBzip2(string $data): ?string
+    {
+        if (!function_exists('bzdecompress')) {
+            return null;
+        }
+        $out = @bzdecompress($data);
+
+        return is_string($out) && $out !== '' ? $out : null;
     }
 
     public function initialStep(Server $server): array

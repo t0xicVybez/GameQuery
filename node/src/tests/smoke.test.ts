@@ -120,6 +120,25 @@ check(
   srcMp.reassemble([singlePacket])?.equals(singlePacket) === true,
 );
 
+// bzip2-compressed split: id high bit set; packet 0 carries decompSize + CRC.
+const cfrag = Buffer.concat([
+  Buffer.from([0xfe, 0xff, 0xff, 0xff]),
+  Buffer.from([0x00, 0x00, 0x00, 0x80]), // id, compressed bit
+  Buffer.from([0x01, 0x00, 0xe0, 0x04]), // total=1, number=0, size
+  Buffer.alloc(8), // decompressed size + CRC
+  Buffer.from('COMPRESSED-BLOB'),
+]);
+Source.setBzip2Decompressor((d) => Buffer.from('DEC:' + d.toString()));
+check(
+  'a2s compressed split uses the injected bzip2 decompressor',
+  new Source().reassemble([cfrag])?.toString() === 'DEC:COMPRESSED-BLOB',
+);
+Source.setBzip2Decompressor(null);
+check(
+  'a2s compressed split degrades gracefully without a decompressor',
+  new Source().reassemble([cfrag])?.equals(cfrag) === true,
+);
+
 // "The Ship" (app_id 2400) inserts mode/witnesses/duration before the version.
 const shipInfo = Buffer.concat([
   Buffer.from([0xff, 0xff, 0xff, 0xff, 0x49, 7]),

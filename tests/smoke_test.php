@@ -154,6 +154,18 @@ check('reassemble reorders out-of-order fragments', $source->reassemble([$frag1,
 $singlePacket = "\xFF\xFF\xFF\xFF" . 'SINGLE';
 check('reassemble returns a single packet unchanged', $source->reassemble([$singlePacket]) === $singlePacket);
 
+if (function_exists('bzcompress')) {
+    // A compressed split: id high bit set; packet 0 carries decompressed-size + CRC.
+    $rulesPayload = "\xFF\xFF\xFF\xFF\x45" . pack('v', 1) . "sv_test\x00value_here\x00";
+    $cfrag = "\xFE\xFF\xFF\xFF"                  // header -2
+        . "\x00\x00\x00\x80"                     // id, high bit = compressed
+        . "\x01" . "\x00" . "\xE0\x04"           // total=1, number=0, size
+        . pack('V', strlen($rulesPayload))        // decompressed size
+        . pack('V', 0)                            // CRC (unverified)
+        . bzcompress($rulesPayload, 9);
+    check('a2s compressed split is bzip2-decompressed', $source->reassemble([$cfrag]) === $rulesPayload);
+}
+
 echo "\nMinecraft status packet framing + JSON parsing\n";
 
 $statusJson = json_encode([
