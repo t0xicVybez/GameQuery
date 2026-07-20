@@ -5,6 +5,33 @@ All notable changes to GameQuery are documented here. The format follows
 [Semantic Versioning](https://semver.org/). The PHP (`t0xicvybez/gamequery`) and
 Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
 
+## [0.4.0] - 2026-07-20
+
+### Added
+- **Satisfactory** (`satisfactory`) — the Lightweight Query UDP protocol
+  (name/state/build). Player counts aren't exposed by that query.
+- **Steam master-server discovery** — `GameQuery::listServers(filter, region)`
+  returns `ip:port` strings for Source/A2S servers matching a filter, to feed
+  into `addServer('source', …)`.
+- **`Result::playerList()`** — structured player rows (`name`, plus `score` /
+  `duration` where the protocol provides them), alongside `playerNames()`.
+- **IPv6 addresses** — `fromAddress` accepts the bracket form `[::1]:27015`.
+- **bzip2-compressed A2S splits** are decompressed — automatically in PHP (bz2
+  extension), and in Node via an injected `Source.setBzip2Decompressor()`.
+- **Parser fuzzer** (`fuzz` script, both ports, wired into CI) that throws
+  128k malformed buffers at every protocol and asserts none crash.
+- **`ProtocolRegistry::names()`** to enumerate registered protocols; generated
+  API-reference tooling (typedoc + phpDocumentor) with a Pages workflow.
+
+### Fixed
+- **Two more UDP crash paths eliminated** — a synchronous `send()` throw (seen
+  when querying an IPv6 literal on a host without IPv6, and during the connect
+  window) now reports offline instead of taking down the process.
+- Multi-packet buffering is capped (≤256 datagrams / 2 MB) against a flooding
+  peer, and the transport traps `isResponseComplete()`/`reassemble()` throws.
+- `fromAddress` now splits on the last colon in both ports (a latent PHP/Node
+  parity gap on unbracketed IPv6).
+
 ## [0.3.0] - 2026-07-19
 
 ### Added
@@ -76,6 +103,7 @@ Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
   id Tech families, Mumble, TeamSpeak 3, Frostbite, Assetto Corsa, Terraria,
   SA-MP/open.mp), concurrent multi-server polling, and a JSON CLI.
 
+[0.4.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/t0xicVybez/GameQuery/compare/v0.1.0...v0.1.1

@@ -16,7 +16,7 @@ the same API, and the same results.
 - **Concurrent by design.** One event loop drives every server's query at once,
   so polling 25 servers takes about as long as the single slowest one — not the
   sum of all of them.
-- **22 protocol families / 32 registered keys**, covering A2S/Source, both
+- **23 protocol families / 33 registered keys**, covering A2S/Source, both
   Minecraft editions, FiveM, Palworld, the GameSpy and id Tech families, voice
   servers, and more (full table below).
 - **Never throws for an unreachable server.** Every query returns a `Result`;
@@ -98,8 +98,8 @@ const one = await GameQuery.queryOne('source', '127.0.0.1:27015');
 ### Result API
 
 - **Normalized accessors** — `name()`, `map()`, `players()`, `maxPlayers()`,
-  `playerNames()` — read the right field regardless of protocol. Raw
-  protocol-specific fields remain on `data`.
+  `playerNames()`, and `playerList()` (structured `{name, score?, duration?}`)
+  — read the right field regardless of protocol. Raw fields remain on `data`.
 - **`errorCode`** — a stable `ErrorCode` value on failures (`TIMEOUT`,
   `UNREACHABLE`, `CONNECTION_CLOSED`, `AUTH_FAILED`, `PROTOCOL_ERROR`,
   `CONFIG_ERROR`) — switch on it instead of matching the human `error` string.
@@ -107,14 +107,19 @@ const one = await GameQuery.queryOne('source', '127.0.0.1:27015');
   are open at once (`new GameQuery(2000, 1, 256)`); use it for large fleets.
 - **`queryWithPortProbe()`** — try a base port plus offsets and return the first that answers (for Source games whose query port is offset from the game port).
 - **`queryOne()`** — query a single server without the addServer()/process() ceremony.
+- **`listServers()`** — discover Source/A2S servers via the Steam master server
+  (returns `ip:port` strings to feed into `addServer('source', …)`).
 - **`toArray()` / `toObject()`** — both serialize the result (the CLI's JSON shape).
+
+Addresses accept IPv6 in bracket form (`[::1]:27015`). Every parser is fuzzed
+against malformed input, so a hostile or broken server reply can't crash it.
 
 Results come back in add order, one per server. `data` holds whatever the
 protocol parsed — see each protocol class's `parse()` for its exact fields.
 
 ## Supported protocols
 
-**22 protocol families / 32 registered keys**, identical across both ports.
+**23 protocol families / 33 registered keys**, identical across both ports.
 Parenthesised keys are aliases or variants (e.g. `source-players` adds the
 player list, `-info` variants skip it).
 
@@ -142,6 +147,7 @@ player list, `-info` variants skip it).
 | `assettocorsa` | Assetto Corsa (HTTP `/INFO`) | TCP/HTTP |
 | `terraria` | Terraria via TShock REST | TCP/HTTP |
 | `samp` (`openmp`, `samp-info`) | SA-MP / open.mp (GTA: San Andreas) | UDP |
+| `satisfactory` | Satisfactory Lightweight Query (name/state/build) | UDP |
 
 A few protocols need extra input: **Palworld** and **Terraria** take an admin
 password / token, **TeamSpeak 3** takes the voice port, and **Assetto Corsa**
@@ -173,7 +179,7 @@ flag (which is visible to anything that can run `ps`). The CLI always exits `0`
 
 ```
 GameQuery                facade: addServer() / process()
-  ProtocolRegistry       name string -> protocol instance (32 keys)
+  ProtocolRegistry       name string -> protocol instance (33 keys)
   Server / Result        immutable value objects in, value objects out
   Transport/
     SocketManager        the concurrent event loop
@@ -218,10 +224,12 @@ exposes it via `Server::address()`. Protocols that don't opt in pay no cost.
 
 Kept deliberately honest — these are the edges worth knowing about:
 
-- **A2S bzip2-compressed splits aren't decompressed.** Multi-datagram
-  `A2S_RULES` replies (from servers with very large cvar lists) *are* reassembled
-  now; the rare bzip2-*compressed* split — a legacy GoldSource case — is detected
-  and skipped, since decompressing it would mean a bzip2 dependency.
+- **A2S bzip2 decompression needs help in Node.** Multi-datagram `A2S_RULES`
+  replies are reassembled, and the rare bzip2-*compressed* variant is
+  decompressed automatically in PHP (when the `bz2` extension is present). Node
+  has no built-in bzip2, so — to stay dependency-free — you supply one via
+  `Source.setBzip2Decompressor(fn)`; without it, a compressed reply degrades to
+  partial data rather than failing.
 - **Minecraft `pingMs` is the status round trip.** For the `minecraft` protocol,
   `pingMs` is the handshake + status round trip. If you want the protocol's
   dedicated 0x01 ping as a purer network latency, use `minecraft-ping`, which
