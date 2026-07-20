@@ -69,6 +69,7 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run fuzz
+      - run: npm run build:all
 
   parity:
     name: PHP/Node parity
