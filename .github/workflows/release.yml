@@ -1,0 +1,57 @@
+name: Release
+
+# On a version tag: gate both ports, publish the Node package to npm with
+# provenance, and cut a GitHub Release from the CHANGELOG. Requires an NPM_TOKEN
+# repo secret (a granular token with "Bypass 2FA" enabled, or a classic
+# Automation token). Packagist syncs the PHP side on its own via the webhook.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # create the GitHub Release
+  id-token: write # npm provenance attestation
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Gate: PHP suite + fuzzer must pass before we publish the tag.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - run: php tests/smoke_test.php
+      - run: php tests/fuzz_test.php
+
+      # Gate + build + publish the Node package.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - working-directory: node
+        run: npm install --no-audit --no-fund
+      - working-directory: node
+        run: npm test
+      - working-directory: node
+        run: npm run fuzz
+      - working-directory: node
+        run: npm run build:all
+
+      - name: Publish to npm (with provenance)
+        working-directory: node
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release from CHANGELOG
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk "/^## \\[$VERSION\\]/{flag=1; next} /^## \\[/{flag=0} flag" CHANGELOG.md > release_notes.md
+          if [ ! -s release_notes.md ]; then echo "See CHANGELOG.md" > release_notes.md; fi
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release_notes.md
