@@ -39,7 +39,7 @@ folder and `autoload.php`, then `require __DIR__ . '/autoload.php';`.
 ```bash
 npm install @t0xicvybez/gamequery
 ```
-
+Ships both ESM and CommonJS, so `import` and `require()` both work.
 See [`node/`](node/) for the TypeScript API and CLI details.
 
 ## Quick start
@@ -70,9 +70,10 @@ foreach ($gq->process() as $result) {
 }
 ```
 
-Just one server? Skip the ceremony:
+Just one server, or don't know the protocol? Skip the ceremony:
 ```php
 $r = GameQuery::queryOne('source', '127.0.0.1:27015');
+$r = GameQuery::queryGame('rust', 'my-rust-server.com');   // resolves protocol + port
 ```
 
 **Node / TypeScript:**
@@ -107,6 +108,11 @@ const one = await GameQuery.queryOne('source', '127.0.0.1:27015');
   are open at once (`new GameQuery(2000, 1, 256)`); use it for large fleets.
 - **`queryWithPortProbe()`** — try a base port plus offsets and return the first that answers (for Source games whose query port is offset from the game port).
 - **`queryOne()`** — query a single server without the addServer()/process() ceremony.
+- **`queryGame()` / `addGame()`** — query by game id (`'rust'`, `'cs2'`,
+  `'minecraft'`) instead of protocol; resolves the protocol + default port from a
+  44-game database.
+- **`processStream()`** — an async iterator (PHP: a `Generator`) that yields each
+  `Result` the moment its server answers, instead of waiting for the slowest.
 - **`listServers()`** — discover Source/A2S servers via the Steam master server
   (returns `ip:port` strings to feed into `addServer('source', …)`).
 - **`toArray()` / `toObject()`** — both serialize the result (the CLI's JSON shape).

@@ -5,6 +5,29 @@ All notable changes to GameQuery are documented here. The format follows
 [Semantic Versioning](https://semver.org/). The PHP (`t0xicvybez/gamequery`) and
 Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
 
+## [0.5.0] - 2026-07-20
+
+### Added
+- **Query by game.** A 44-game database maps game ids to protocol + default port,
+  so you can `GameQuery::queryGame('rust', host)` / `->addGame('cs2', host)`
+  without knowing it's A2S on a particular port.
+- **Streaming results.** `processStream()` yields each `Result` the moment its
+  server answers instead of waiting for the slowest — a `for await` async
+  iterator in Node, a `Generator` (`foreach`) in PHP.
+- **Dual ESM + CommonJS build (Node).** The package now ships both, wired via an
+  `exports` map, so `require()` works alongside `import`. Runtime stays
+  dependency-free (esbuild is dev-only).
+- **`ProtocolRegistry::names()`** already listed protocols; `GAMES` / `gameInfo()`
+  now expose the game database too.
+
+### Changed
+- The PHP `SocketManager` loop was refactored into a shared `drive()` generator
+  behind `run()` and the new `runStream()` (no behavior change to `run()`).
+
+### CI / release
+- **Tag-triggered release workflow** publishes to npm with **build provenance**
+  and cuts a GitHub Release from the CHANGELOG (needs an `NPM_TOKEN` secret).
+
 ## [0.4.0] - 2026-07-20
 
 ### Added
@@ -103,6 +126,7 @@ Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
   id Tech families, Mumble, TeamSpeak 3, Frostbite, Assetto Corsa, Terraria,
   SA-MP/open.mp), concurrent multi-server polling, and a JSON CLI.
 
+[0.5.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.1.1...v0.2.0

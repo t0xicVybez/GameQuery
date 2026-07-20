@@ -1,6 +1,6 @@
 {
   "name": "@t0xicvybez/gamequery",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Dependency-free game server query library (players, map, ping, rules) over UDP/TCP with concurrent multi-server polling. Node/TypeScript port of GameQuery.",
   "type": "module",
   "main": "./dist/index.cjs",

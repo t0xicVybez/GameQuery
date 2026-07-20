@@ -16,6 +16,8 @@ use GameQuery\Buffer\ByteReader;
 use GameQuery\Buffer\ByteWriter;
 use GameQuery\ErrorCode;
 use GameQuery\Exception\GameQueryException;
+use GameQuery\GameQuery;
+use GameQuery\Games;
 use GameQuery\Protocol\Ase;
 use GameQuery\Protocol\AssettoCorsa;
 use GameQuery\Protocol\Bedrock;
@@ -41,8 +43,6 @@ use GameQuery\Protocol\Terraria;
 use GameQuery\Protocol\Unreal2;
 use GameQuery\Result;
 use GameQuery\Server;
-use GameQuery\Games;
-use GameQuery\GameQuery;
 use GameQuery\SteamMaster;
 
 $failures = 0;
