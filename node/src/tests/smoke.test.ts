@@ -8,6 +8,7 @@ import { Minecraft } from '../protocol/Minecraft.js';
 import { Bedrock } from '../protocol/Bedrock.js';
 import { Palworld } from '../protocol/Palworld.js';
 import { FiveM } from '../protocol/FiveM.js';
+import { isHttpComplete, splitHttp } from '../protocol/http.js';
 import { Quake2 } from '../protocol/Quake2.js';
 import { Quake3 } from '../protocol/Quake3.js';
 import { GameSpy1 } from '../protocol/GameSpy1.js';
@@ -243,6 +244,28 @@ check('fivem name + max parsed', fp.name === 'Test RP' && fp.max_players === 48)
 check(
   'fivem players parsed',
   fp.players === 2 && JSON.stringify(fp.players_list) === JSON.stringify(['Alice', 'Bob']),
+);
+
+// Chunked transfer encoding (no Content-Length) — how real CitizenFX servers reply.
+const chunk = (body: string): string => `${Buffer.byteLength(body).toString(16)}\r\n${body}\r\n0\r\n\r\n`;
+const chunkedInfo = Buffer.from(`HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n${chunk(fmInfoBody)}`, 'utf8');
+const chunkedPlayers = Buffer.from(
+  `HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n${chunk(fmPlayersBody)}`,
+  'utf8',
+);
+check('http: chunked response reports complete once terminated', isHttpComplete(chunkedInfo));
+check(
+  'http: chunked response incomplete without terminator',
+  !isHttpComplete(Buffer.from(`HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5f\r\n${fmInfoBody}`, 'utf8')),
+);
+check('http: splitHttp de-chunks the body', splitHttp(chunkedInfo).body === fmInfoBody);
+const fpChunked = new FiveM().parse(srv('fivem', 'x:30120'), [
+  ...hist('info', chunkedInfo),
+  ...hist('players', chunkedPlayers),
+]);
+check(
+  'fivem parses a chunked response',
+  fpChunked.name === 'Test RP' && fpChunked.max_players === 48 && fpChunked.players === 2,
 );
 
 console.log('\nQuake2 / Quake3');

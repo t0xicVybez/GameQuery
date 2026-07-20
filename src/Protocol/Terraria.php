@@ -57,19 +57,7 @@ final class Terraria extends AbstractProtocol
 
     public function isResponseComplete(string $buffer): bool
     {
-        $headerEnd = strpos($buffer, "\r\n\r\n");
-        if ($headerEnd === false) {
-            return false;
-        }
-
-        $headers = substr($buffer, 0, $headerEnd);
-        $body = substr($buffer, $headerEnd + 4);
-
-        if (preg_match('/^Content-Length:\s*(\d+)/mi', $headers, $matches)) {
-            return strlen($body) >= (int) $matches[1];
-        }
-
-        return true;
+        return Http::isComplete($buffer);
     }
 
     public function parse(Server $server, array $history): array
@@ -79,7 +67,7 @@ final class Terraria extends AbstractProtocol
             return [];
         }
 
-        [$httpStatus, $body] = $this->splitHttpResponse($raw);
+        [$httpStatus, $body] = Http::split($raw);
         if ($httpStatus !== 200) {
             return [];
         }
@@ -121,20 +109,5 @@ final class Terraria extends AbstractProtocol
             . "User-Agent: GameQuery-PHP\r\n"
             . "Connection: close\r\n"
             . "\r\n";
-    }
-
-    /** @return array{0: int, 1: string} [status code, body] */
-    private function splitHttpResponse(string $raw): array
-    {
-        $headerEnd = strpos($raw, "\r\n\r\n");
-        $headers = $headerEnd !== false ? substr($raw, 0, $headerEnd) : $raw;
-        $body = $headerEnd !== false ? substr($raw, $headerEnd + 4) : '';
-
-        $status = 0;
-        if (preg_match('#^HTTP/\d\.\d\s+(\d+)#', $headers, $matches)) {
-            $status = (int) $matches[1];
-        }
-
-        return [$status, $body];
     }
 }

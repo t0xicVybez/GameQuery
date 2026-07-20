@@ -5,6 +5,19 @@ All notable changes to GameQuery are documented here. The format follows
 [Semantic Versioning](https://semver.org/). The PHP (`t0xicvybez/gamequery`) and
 Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
 
+## [0.5.1] - 2026-07-20
+
+### Fixed
+- **HTTP `Transfer-Encoding: chunked` responses** are now handled by the shared
+  HTTP helper (FiveM, Palworld, Terraria, Assetto Corsa). Previously, a response
+  without a `Content-Length` was treated as complete the moment its headers
+  arrived, so a chunked body (what live CitizenFX/FiveM servers actually send)
+  was read partially and never de-chunked — the JSON failed to parse and the
+  two-request conversation desynced, yielding an "online" result with an empty
+  name and `0/0` players. Completion now waits for the terminating zero-length
+  chunk and the body is de-chunked before parsing. Verified live against a
+  FiveM server returning both endpoints chunked.
+
 ## [0.5.0] - 2026-07-20
 
 ### Added
@@ -126,6 +139,7 @@ Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
   id Tech families, Mumble, TeamSpeak 3, Frostbite, Assetto Corsa, Terraria,
   SA-MP/open.mp), concurrent multi-server polling, and a JSON CLI.
 
+[0.5.1]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.2.0...v0.3.0

@@ -22,8 +22,8 @@ use GameQuery\Server;
  * the "vars" object on modern builds but has historically also appeared at
  * the top level, so both locations are checked.
  *
- * Known limitation: like Palworld, completion detection relies on the
- * Content-Length header and has no chunked-transfer-encoding path.
+ * HTTP framing (Content-Length or chunked) and body de-chunking are handled by
+ * the shared {@see Http} helper — CitizenFX serves these endpoints chunked.
  */
 final class FiveM extends AbstractProtocol
 {
@@ -64,20 +64,7 @@ final class FiveM extends AbstractProtocol
 
     public function isResponseComplete(string $buffer): bool
     {
-        $headerEnd = strpos($buffer, "\r\n\r\n");
-
-        if ($headerEnd === false) {
-            return false;
-        }
-
-        $headers = substr($buffer, 0, $headerEnd);
-        $body = substr($buffer, $headerEnd + 4);
-
-        if (preg_match('/^Content-Length:\s*(\d+)/mi', $headers, $matches)) {
-            return strlen($body) >= (int) $matches[1];
-        }
-
-        return true;
+        return Http::isComplete($buffer);
     }
 
     public function parse(Server $server, array $history): array
@@ -86,7 +73,7 @@ final class FiveM extends AbstractProtocol
 
         $infoRaw = $this->responseFor($history, 'info');
         if ($infoRaw !== null) {
-            [$status, $body] = $this->splitHttpResponse($infoRaw);
+            [$status, $body] = Http::split($infoRaw);
 
             if ($status === 200) {
                 $info = json_decode($body, true);
@@ -108,7 +95,7 @@ final class FiveM extends AbstractProtocol
 
         $playersRaw = $this->responseFor($history, 'players');
         if ($playersRaw !== null) {
-            [$status, $body] = $this->splitHttpResponse($playersRaw);
+            [$status, $body] = Http::split($playersRaw);
 
             if ($status === 200) {
                 $players = json_decode($body, true);
@@ -134,20 +121,5 @@ final class FiveM extends AbstractProtocol
             . "Accept: application/json\r\n"
             . "User-Agent: GameQuery-PHP\r\n"
             . "\r\n";
-    }
-
-    /** @return array{0: int, 1: string} [status code, body] */
-    private function splitHttpResponse(string $raw): array
-    {
-        $headerEnd = strpos($raw, "\r\n\r\n");
-        $headers = $headerEnd !== false ? substr($raw, 0, $headerEnd) : $raw;
-        $body = $headerEnd !== false ? substr($raw, $headerEnd + 4) : '';
-
-        $status = 0;
-        if (preg_match('#^HTTP/\d\.\d\s+(\d+)#', $headers, $matches)) {
-            $status = (int) $matches[1];
-        }
-
-        return [$status, $body];
     }
 }

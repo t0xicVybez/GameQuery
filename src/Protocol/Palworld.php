@@ -75,23 +75,7 @@ final class Palworld extends AbstractProtocol
 
     public function isResponseComplete(string $buffer): bool
     {
-        $headerEnd = strpos($buffer, "\r\n\r\n");
-
-        if ($headerEnd === false) {
-            return false;
-        }
-
-        $headers = substr($buffer, 0, $headerEnd);
-        $body = substr($buffer, $headerEnd + 4);
-
-        if (preg_match('/^Content-Length:\s*(\d+)/mi', $headers, $matches)) {
-            return strlen($body) >= (int) $matches[1];
-        }
-
-        // No Content-Length to go on -- best effort: consider the headers
-        // arriving as "complete enough" rather than waiting indefinitely,
-        // since we aren't requesting connection close and can't rely on EOF.
-        return true;
+        return Http::isComplete($buffer);
     }
 
     public function parse(Server $server, array $history): array
@@ -110,7 +94,7 @@ final class Palworld extends AbstractProtocol
 
         $playersRaw = $this->responseFor($history, 'players');
         if ($playersRaw !== null) {
-            [$status, $body] = $this->splitHttpResponse($playersRaw);
+            [$status, $body] = Http::split($playersRaw);
 
             if ($status === 200) {
                 $decoded = json_decode($body, true);
@@ -148,24 +132,9 @@ final class Palworld extends AbstractProtocol
             . "\r\n";
     }
 
-    /** @return array{0: int, 1: string} [status code, body] */
-    private function splitHttpResponse(string $raw): array
-    {
-        $headerEnd = strpos($raw, "\r\n\r\n");
-        $headers = $headerEnd !== false ? substr($raw, 0, $headerEnd) : $raw;
-        $body = $headerEnd !== false ? substr($raw, $headerEnd + 4) : '';
-
-        $status = 0;
-        if (preg_match('#^HTTP/\d\.\d\s+(\d+)#', $headers, $matches)) {
-            $status = (int) $matches[1];
-        }
-
-        return [$status, $body];
-    }
-
     private function parseHttpJson(string $raw, array $fieldMap): array
     {
-        [$status, $body] = $this->splitHttpResponse($raw);
+        [$status, $body] = Http::split($raw);
 
         if ($status === 401) {
             return ['auth_error' => true];

@@ -27,6 +27,7 @@ use GameQuery\Protocol\Frostbite;
 use GameQuery\Protocol\GameSpy1;
 use GameQuery\Protocol\GameSpy2;
 use GameQuery\Protocol\GameSpy3;
+use GameQuery\Protocol\Http;
 use GameQuery\Protocol\Minecraft;
 use GameQuery\Protocol\MinecraftLegacy;
 use GameQuery\Protocol\MinecraftQuery;
@@ -278,6 +279,19 @@ check('fivem player count from players.json', $fivemParsed['players'] === 3);
 check('fivem player names parsed', $fivemParsed['players_list'] === ['Alice', 'Bob', 'Carol']);
 $fivemNext = $fivem->nextStep($fivemServer, [['tag' => 'info', 'request' => '', 'response' => $infoResp]]);
 check('fivem next step requests players.json', $fivemNext !== null && str_contains($fivemNext['packet'], 'GET /players.json'));
+
+// Chunked transfer encoding (no Content-Length) -- how real CitizenFX servers reply.
+$chunk = static fn (string $body): string => dechex(strlen($body)) . "\r\n" . $body . "\r\n0\r\n\r\n";
+$chunkedInfo = "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n" . $chunk($infoBody);
+$chunkedPlayers = "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n" . $chunk($playersBody);
+check('http: chunked response reports complete once terminated', Http::isComplete($chunkedInfo) === true);
+check('http: chunked response incomplete without terminator', Http::isComplete("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5f\r\n" . $infoBody) === false);
+check('http: split() de-chunks the body', Http::split($chunkedInfo)[1] === $infoBody);
+$fivemChunked = $fivem->parse($fivemServer, [
+    ['tag' => 'info', 'request' => '', 'response' => $chunkedInfo],
+    ['tag' => 'players', 'request' => '', 'response' => $chunkedPlayers],
+]);
+check('fivem parses a chunked response', $fivemChunked['name'] === 'Test RP' && $fivemChunked['max_players'] === 48 && $fivemChunked['players'] === 3);
 
 echo "\nQuake3 (id Tech 3 getstatus) parsing\n";
 $q3 = new Quake3();

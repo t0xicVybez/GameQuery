@@ -31,7 +31,7 @@ if [ "$php_keys" != "$ts_keys" ]; then
     exit 1
 fi
 
-php_classes=$(cd src/Protocol && ls *.php | sed 's/\.php$//' | grep -vE '^(AbstractProtocol|ProtocolInterface)$' | sort)
+php_classes=$(cd src/Protocol && ls *.php | sed 's/\.php$//' | grep -vE '^(AbstractProtocol|ProtocolInterface|Http)$' | sort)
 ts_classes=$(cd node/src/protocol && ls *.ts | sed 's/\.ts$//' | grep -vE '^(AbstractProtocol|ProtocolInterface|http)$' | sort)
 
 if [ "$php_classes" != "$ts_classes" ]; then
