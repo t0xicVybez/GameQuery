@@ -55,12 +55,16 @@ export class GameQuery {
     return this;
   }
 
-  /** Queries every added server concurrently; one Result per server, in order. */
-  async process(): Promise<Result[]> {
-    const jobs: Job[] = this.servers.map((server) => ({
+  private buildJobs(): Job[] {
+    return this.servers.map((server) => ({
       server,
       protocol: this.protocols.get(server.protocol),
     }));
+  }
+
+  /** Queries every added server concurrently; one Result per server, in add order. */
+  async process(): Promise<Result[]> {
+    const jobs = this.buildJobs();
     if (jobs.length === 0) return [];
 
     // Run in windows when a concurrency cap is set; otherwise all at once.
@@ -71,6 +75,24 @@ export class GameQuery {
       results.push(...(await manager.run(jobs.slice(i, i + window))));
     }
     return results;
+  }
+
+  /**
+   * Like process(), but yields each Result the moment its server answers —
+   * completion order, not add order. Handy for dashboards that render servers
+   * as they come back instead of waiting for the slowest.
+   *
+   *   for await (const r of gq.processStream()) { … }
+   */
+  async *processStream(): AsyncGenerator<Result> {
+    const jobs = this.buildJobs();
+    if (jobs.length === 0) return;
+
+    const window = this.maxConcurrent > 0 ? this.maxConcurrent : jobs.length;
+    for (let i = 0; i < jobs.length; i += window) {
+      const manager = new SocketManager(this.timeoutMs, this.retries);
+      yield* manager.runStream(jobs.slice(i, i + window));
+    }
   }
 
   /**

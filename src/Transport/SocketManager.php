@@ -29,14 +29,48 @@ final class SocketManager
      */
     public function run(array $jobs): array
     {
+        $results = [];
+        foreach ($this->drive($jobs) as [$index, $result]) {
+            $results[$index] = $result;
+        }
+        ksort($results);
+
+        return array_values($results);
+    }
+
+    /**
+     * Like run(), but yields each Result the moment its server finishes
+     * (completion order, not add order).
+     *
+     * @param list<array{server: Server, protocol: ProtocolInterface}> $jobs
+     * @return \Generator<int, Result>
+     */
+    public function runStream(array $jobs): \Generator
+    {
+        foreach ($this->drive($jobs) as [, $result]) {
+            yield $result;
+        }
+    }
+
+    /**
+     * Drives every session to completion on the single stream_select() loop,
+     * yielding [addIndex, Result] the instant each one finishes. Shared by
+     * run() (which reorders back to add order) and runStream().
+     *
+     * @param list<array{server: Server, protocol: ProtocolInterface}> $jobs
+     * @return \Generator<int, array{0: int, 1: Result}>
+     */
+    private function drive(array $jobs): \Generator
+    {
         /** @var list<QuerySession> $sessions */
         $sessions = [];
-
         foreach ($jobs as $job) {
             $session = new QuerySession($job['server'], $job['protocol'], $this->timeoutSeconds, $this->maxRetries);
             $session->open();
             $sessions[] = $session;
         }
+
+        $yielded = array_fill(0, count($sessions), false);
 
         // Hard ceiling so a pathological case (e.g. a select() that never
         // returns readiness) can't hang the whole batch forever. Individual
@@ -44,8 +78,17 @@ final class SocketManager
         $hardDeadline = microtime(true) + $this->timeoutSeconds * ($this->maxRetries + 1) + 2.0;
 
         while (true) {
-            $active = array_filter($sessions, static fn (QuerySession $s) => !$s->isFinished());
+            // Emit any sessions that finished on the previous tick.
+            foreach ($sessions as $i => $session) {
+                if (!$yielded[$i] && $session->isFinished()) {
+                    $yielded[$i] = true;
+                    $result = $session->toResult();
+                    $session->close();
+                    yield [$i, $result];
+                }
+            }
 
+            $active = array_filter($sessions, static fn (QuerySession $s) => !$s->isFinished());
             if ($active === []) {
                 break;
             }
@@ -54,7 +97,7 @@ final class SocketManager
                 foreach ($active as $session) {
                     $session->forceTimeout();
                 }
-                break;
+                continue; // loop once more to emit the force-finished sessions
             }
 
             $read = [];
@@ -115,12 +158,14 @@ final class SocketManager
             }
         }
 
-        $results = array_map(static fn (QuerySession $s) => $s->toResult(), $sessions);
-
-        foreach ($sessions as $session) {
-            $session->close();
+        // Emit anything finished by the final tick / hard deadline.
+        foreach ($sessions as $i => $session) {
+            if (!$yielded[$i]) {
+                $yielded[$i] = true;
+                $result = $session->toResult();
+                $session->close();
+                yield [$i, $result];
+            }
         }
-
-        return $results;
     }
 }

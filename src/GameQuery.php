@@ -80,15 +80,7 @@ final class GameQuery
      */
     public function process(): array
     {
-        $jobs = [];
-
-        foreach ($this->servers as $server) {
-            $jobs[] = [
-                'server' => $server,
-                'protocol' => $this->protocols->get($server->protocol),
-            ];
-        }
-
+        $jobs = $this->buildJobs();
         if ($jobs === []) {
             return [];
         }
@@ -105,6 +97,46 @@ final class GameQuery
         }
 
         return $results;
+    }
+
+    /**
+     * Like process(), but yields each Result the moment its server answers --
+     * completion order, not add order. Handy for dashboards that render servers
+     * as they come back instead of waiting for the slowest.
+     *
+     *   foreach ($gq->processStream() as $result) { ... }
+     *
+     * @return \Generator<int, Result>
+     */
+    public function processStream(): \Generator
+    {
+        $jobs = $this->buildJobs();
+        if ($jobs === []) {
+            return;
+        }
+
+        $window = $this->maxConcurrent > 0 ? $this->maxConcurrent : count($jobs);
+
+        foreach (array_chunk($jobs, $window) as $chunk) {
+            $manager = new Transport\SocketManager($this->timeoutSeconds, $this->retries);
+            yield from $manager->runStream($chunk);
+        }
+    }
+
+    /**
+     * @return list<array{server: Server, protocol: Protocol\ProtocolInterface}>
+     */
+    private function buildJobs(): array
+    {
+        $jobs = [];
+        foreach ($this->servers as $server) {
+            $jobs[] = [
+                'server' => $server,
+                'protocol' => $this->protocols->get($server->protocol),
+            ];
+        }
+
+        return $jobs;
     }
 
     /**
