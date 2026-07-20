@@ -1,0 +1,10 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "readme": "README.md",
+  "name": "GameQuery (Node/TypeScript)",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "githubPages": false
+}

@@ -238,11 +238,16 @@ Kept deliberately honest — these are the edges worth knowing about:
 
 ```bash
 php tests/smoke_test.php          # PHP unit suite (offline)
+php tests/fuzz_test.php           # malformed-input fuzzer (offline)
 cd node && npm test               # TS unit suite (build + run, offline)
+cd node && npm run fuzz           # TS fuzzer
 
 php tests/integration.php                 # optional live checks
 cd node && npm run test:integration       # (edit the server list first)
 ```
+
+Generate the API reference with `cd node && npm run docs` (typedoc) and
+`composer docs` (phpDocumentor — needs the phpDocumentor phar on your PATH).
 
 The unit suites are dependency-free assertions against hand-built, known-good
 protocol byte sequences — buffer round-tripping, A2S parsing (including the 2020

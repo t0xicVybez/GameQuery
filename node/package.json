@@ -25,7 +25,8 @@
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "docs": "typedoc"
   },
   "keywords": [
     "game-server",
@@ -53,6 +54,7 @@
     "@types/node": "^22.0.0",
     "eslint": "^10.7.0",
     "prettier": "^3.4.0",
+    "typedoc": "^0.28.20",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.64.0"
   }

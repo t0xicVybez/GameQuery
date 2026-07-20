@@ -6,3 +6,6 @@ composer.lock
 node/node_modules/
 node/dist/
 node/package-lock.json
+node/docs/
+/docs/
+.phpdoc/

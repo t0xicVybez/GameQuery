@@ -11,4 +11,5 @@
 /CONTRIBUTING.md  export-ignore
 /phpstan.neon     export-ignore
 /.php-cs-fixer.dist.php export-ignore
+/phpdoc.dist.xml  export-ignore
 /.github          export-ignore

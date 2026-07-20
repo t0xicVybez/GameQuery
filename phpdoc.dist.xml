@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpdocumentor
+    configVersion="3"
+    xmlns="https://www.phpdoc.org/xsd/configuration/v3">
+    <title>GameQuery (PHP)</title>
+    <paths>
+        <output>docs</output>
+    </paths>
+    <version number="latest">
+        <api>
+            <source dsn=".">
+                <path>src</path>
+            </source>
+        </api>
+    </version>
+</phpdocumentor>
