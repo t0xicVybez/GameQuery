@@ -3,7 +3,10 @@
 [![Packagist Version](https://img.shields.io/packagist/v/t0xicvybez/gamequery?label=packagist)](https://packagist.org/packages/t0xicvybez/gamequery)
 [![npm version](https://img.shields.io/npm/v/@t0xicvybez/gamequery?label=npm)](https://www.npmjs.com/package/@t0xicvybez/gamequery)
 [![PHP 8.1+](https://img.shields.io/badge/php-8.1%2B-777bb4)](composer.json)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+
+**[query.arkenbot.app](https://query.arkenbot.app)** — docs, the full game list, and a
+live demo you can point at your own server.
 
 A dependency-free game server query library — read player counts, map, hostname,
 ping, and rules from one or many servers at once. It ships as **two parallel
@@ -197,7 +200,7 @@ GameQuery                facade: addServer() / process()
   Protocol/
     ProtocolInterface    the contract every game protocol implements
     AbstractProtocol     shared bookkeeping (tag lookup, defaults)
-    Source, Minecraft, Palworld, … (21 protocol classes)
+    Source, Minecraft, Palworld, … (23 protocol classes)
   Buffer/
     ByteReader / ByteWriter   binary (de)serialization helpers
 ```
@@ -281,4 +284,13 @@ smoke-test a protocol end to end.
 
 ## License
 
-[MIT](LICENSE) © [@t0xicVybez](https://github.com/t0xicVybez)
+[AGPL-3.0-or-later](LICENSE) © [@t0xicVybez](https://github.com/t0xicVybez)
+
+GameQuery is free software and stays that way. You can use it, modify it and
+contribute to it freely; if you distribute a modified version — **including
+running one as a network service** — you have to make your source available
+under the same licence. That's what keeps this project open rather than
+something somebody repackages and sells closed.
+
+Releases up to and including **0.5.3 were MIT** and remain available under those
+terms; the AGPL applies from **0.5.4** onward.

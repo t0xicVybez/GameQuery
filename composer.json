@@ -2,7 +2,7 @@
     "name": "t0xicvybez/gamequery",
     "description": "A dependency-free PHP library for querying multiplayer game server status (players, map, ping, rules) over UDP/TCP, with concurrent multi-server polling.",
     "type": "library",
-    "license": "MIT",
+    "license": "AGPL-3.0-or-later",
     "keywords": [
         "game-server",
         "query",
@@ -15,7 +15,7 @@
         "udp",
         "gameserver"
     ],
-    "homepage": "https://github.com/t0xicVybez/GameQuery",
+    "homepage": "https://query.arkenbot.app",
     "authors": [
         {
             "name": "t0xicVybez",

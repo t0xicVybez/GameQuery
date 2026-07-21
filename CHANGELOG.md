@@ -5,6 +5,33 @@ All notable changes to GameQuery are documented here. The format follows
 [Semantic Versioning](https://semver.org/). The PHP (`t0xicvybez/gamequery`) and
 Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
 
+## [0.5.4] - 2026-07-21
+
+### Changed — licence
+- **GameQuery is now AGPL-3.0-or-later** (was MIT). You may still use, modify and
+  contribute freely; what changes is that a modified version you distribute —
+  **including one you run as a network service** — has to ship its source under
+  the same licence. The intent is that this stays open and can't be repackaged
+  as a closed, paid product.
+- **Versions up to and including 0.5.3 remain MIT** and are unaffected; the AGPL
+  applies from 0.5.4 onward. If you depend on the MIT terms, pin `<=0.5.3`.
+
+### Documentation
+- **The npm README was materially out of date** and is rewritten: it listed 21 of
+  the 33 registered protocol keys (omitting `satisfactory`, `minecraft-query`,
+  `minecraft-ping`, `minecraft-bedrock` and every `-info`/`-players`/`-full`
+  variant), documented none of the API added since 0.2.0 (`queryOne`,
+  `queryGame`/`addGame`, `processStream`, `queryWithPortProbe`, `listServers`,
+  the normalized `Result` accessors, `ErrorCode`), and linked to `../README.md`,
+  which resolves to nothing once npm renders the file standalone. All 33 keys are
+  now documented and every link is absolute.
+- Corrected the architecture diagram in the main README: 23 protocol classes, not 21.
+- Added **<https://query.arkenbot.app>** — docs, the searchable game database and a
+  live demo — as the package homepage on npm and Packagist, and linked it from
+  both READMEs.
+
+No code changes; 0.5.3 and 0.5.4 are functionally identical.
+
 ## [0.5.3] - 2026-07-21
 
 ### Added
@@ -168,6 +195,7 @@ Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
   id Tech families, Mumble, TeamSpeak 3, Frostbite, Assetto Corsa, Terraria,
   SA-MP/open.mp), concurrent multi-server polling, and a JSON CLI.
 
+[0.5.4]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.0...v0.5.1
