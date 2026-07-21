@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace GameQuery\Protocol;
 
-use GameQuery\Exception\GameQueryException;
 use GameQuery\Server;
 
 /**
@@ -12,15 +11,16 @@ use GameQuery\Server;
  * REST API (vanilla Terraria has no query protocol at all). This is plain HTTP
  * over TCP on the REST port (default 7878, distinct from the 7777 game port).
  *
- * Required per-server option (see GameQuery::addServer's $options param):
- *   'token' => a TShock REST application token (RestApiEnabled = true and a
- *              token provisioned in config.json / via /rest)
+ * TShock's `/v2/server/status` is a *public* endpoint — it only requires
+ * `RestApiEnabled = true` server-side, not a token — so the token is optional:
  *
- *   $gq->addServer('terraria', '203.0.113.10:7878', options: [
- *       'token' => 'your-rest-token',
- *   ]);
+ *   'token' => a TShock REST token, appended only when provided (needed only
+ *              if an admin has locked the status endpoint down).
  *
- * Conversation: GET /v2/server/status?players=true&token=<token>. The single
+ *   $gq->addServer('terraria', '203.0.113.10:7878');                       // anonymous
+ *   $gq->addServer('terraria', '203.0.113.10:7878', options: ['token' => $t]); // with token
+ *
+ * Conversation: GET /v2/server/status?players=true[&token=<token>]. The single
  * JSON reply carries the world name, player count, max players, and the
  * connected player list.
  */
@@ -39,13 +39,10 @@ final class Terraria extends AbstractProtocol
     public function initialStep(Server $server): array
     {
         $token = $server->options['token'] ?? null;
-        if (!is_string($token) || $token === '') {
-            throw new GameQueryException(
-                "Terraria server {$server->label()}: missing required options['token'] (TShock REST token)"
-            );
+        $path = '/v2/server/status?players=true';
+        if (is_string($token) && $token !== '') {
+            $path .= '&token=' . rawurlencode($token);
         }
-
-        $path = '/v2/server/status?players=true&token=' . rawurlencode($token);
 
         return ['tag' => 'status', 'packet' => $this->buildRequest($server, $path)];
     }

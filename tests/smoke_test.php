@@ -526,14 +526,11 @@ check('terraria players parsed', $trParsed['players'] === 2);
 check('terraria max players parsed', $trParsed['max_players'] === 8);
 check('terraria version parsed', $trParsed['version'] === '1.4.4.9');
 check('terraria player names parsed', $trParsed['players_list'] === ['Alice', 'Bob']);
-check('terraria request carries token', str_contains($tr->initialStep($trServer)['packet'], 'token=secrettoken'));
-$trThrew = false;
-try {
-    $tr->initialStep(Server::fromAddress('terraria', 'x:7878'));
-} catch (GameQueryException) {
-    $trThrew = true;
-}
-check('terraria missing token rejected', $trThrew === true);
+check('terraria request carries token when provided', str_contains($tr->initialStep($trServer)['packet'], 'token=secrettoken'));
+// The TShock status endpoint is public — no token is fine, and none is appended.
+$trAnon = $tr->initialStep(Server::fromAddress('terraria', 'x:7878'))['packet'];
+check('terraria queries anonymously without a token', str_contains($trAnon, '/v2/server/status?players=true'));
+check('terraria omits the token param when absent', !str_contains($trAnon, 'token='));
 
 echo "\nSA-MP / open.mp parsing\n";
 $samp = new Samp();

@@ -523,16 +523,13 @@ check(
 check('terraria players/max parsed', trp.players === 2 && trp.max_players === 8);
 check('terraria player names parsed', JSON.stringify(trp.players_list) === JSON.stringify(['Alice', 'Bob']));
 check(
-  'terraria request carries token',
+  'terraria request carries token when provided',
   tr.initialStep(trServer).packet.toString('latin1').includes('token=secrettoken'),
 );
-let trThrew = false;
-try {
-  tr.initialStep(Server.fromAddress('terraria', 'x:7878'));
-} catch {
-  trThrew = true;
-}
-check('terraria missing token rejected', trThrew === true);
+// The TShock status endpoint is public — no token is fine, and none is appended.
+const trAnon = tr.initialStep(Server.fromAddress('terraria', 'x:7878')).packet.toString('latin1');
+check('terraria queries anonymously without a token', trAnon.includes('/v2/server/status?players=true'));
+check('terraria omits the token param when absent', !trAnon.includes('token='));
 
 console.log('\nSA-MP / open.mp');
 const sampHeader = (op: string): Buffer =>

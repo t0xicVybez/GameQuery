@@ -8,13 +8,16 @@ import type { HistoryEntry, Step, Transport } from '../types.js';
  * REST API (vanilla Terraria has no query protocol at all). This is plain HTTP
  * over TCP on the REST port (default 7878, distinct from the 7777 game port).
  *
- * Required per-server option (see GameQuery.addServer's options param):
- *   token: a TShock REST application token (RestApiEnabled = true and a token
- *          provisioned in config.json / via /rest)
+ * TShock's `/v2/server/status` is a *public* endpoint — it only requires
+ * `RestApiEnabled = true` server-side, not a token — so the token is optional:
  *
- *   gq.addServer('terraria', '203.0.113.10:7878', { options: { token: '...' } });
+ *   options.token?: a TShock REST token, appended only when provided (needed
+ *                   only if an admin has locked the status endpoint down).
  *
- * Conversation: GET /v2/server/status?players=true&token=<token>. The single
+ *   gq.addServer('terraria', '203.0.113.10:7878');                     // anonymous
+ *   gq.addServer('terraria', '203.0.113.10:7878', { options: { token } }); // with token
+ *
+ * Conversation: GET /v2/server/status?players=true[&token=<token>]. The single
  * JSON reply carries the world name, player count, max players, and the
  * connected player list.
  */
@@ -28,14 +31,11 @@ export class Terraria extends AbstractProtocol {
   }
 
   initialStep(server: Server): Step {
-    const token = server.options.token;
-    if (typeof token !== 'string' || token === '') {
-      throw new Error(
-        `Terraria server ${server.label()}: missing required options.token (TShock REST token)`,
-      );
+    const token = server.options?.token;
+    let path = '/v2/server/status?players=true';
+    if (typeof token === 'string' && token !== '') {
+      path += `&token=${encodeURIComponent(token)}`;
     }
-
-    const path = `/v2/server/status?players=true&token=${encodeURIComponent(token)}`;
     return { tag: 'status', packet: this.buildRequest(server, path) };
   }
 

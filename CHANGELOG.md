@@ -5,6 +5,20 @@ All notable changes to GameQuery are documented here. The format follows
 [Semantic Versioning](https://semver.org/). The PHP (`t0xicvybez/gamequery`) and
 Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
 
+## [0.5.2] - 2026-07-21
+
+### Added
+- **9 more games in the database** — Avorion, Empyrion, Ground Branch, Hurtworld,
+  Miscreated, Pavlov VR, Post Scriptum, Stationeers, and Wreckfest (all A2S /
+  `source`), bringing the `queryGame()` catalogue to 53.
+
+### Changed
+- **Terraria (TShock) token is now optional.** TShock's `/v2/server/status` is a
+  public endpoint that only needs `RestApiEnabled = true` server-side, so the
+  protocol now queries anonymously by default and appends `&token=` only when a
+  token is supplied (for admins who lock the endpoint down). Previously it threw
+  when no token was given. Verified live against a TShock 6.1 server both ways.
+
 ## [0.5.1] - 2026-07-20
 
 ### Fixed
@@ -139,6 +153,7 @@ Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
   id Tech families, Mumble, TeamSpeak 3, Frostbite, Assetto Corsa, Terraria,
   SA-MP/open.mp), concurrent multi-server polling, and a JSON CLI.
 
+[0.5.2]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.3.0...v0.4.0
