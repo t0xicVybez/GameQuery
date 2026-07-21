@@ -42,6 +42,15 @@ export const GAMES: Record<string, GameInfo> = {
   blackmesa: { protocol: 'source', port: 27015, name: 'Black Mesa' },
   theforest: { protocol: 'source', port: 27016, name: 'The Forest' },
   arma3: { protocol: 'source', port: 2303, name: 'Arma 3' }, // A2S query port = game port + 1
+  avorion: { protocol: 'source', port: 27000, name: 'Avorion' },
+  empyrion: { protocol: 'source', port: 30000, name: 'Empyrion - Galactic Survival' },
+  groundbranch: { protocol: 'source', port: 27015, name: 'Ground Branch' },
+  hurtworld: { protocol: 'source', port: 12871, name: 'Hurtworld' },
+  miscreated: { protocol: 'source', port: 64090, name: 'Miscreated' },
+  pavlovvr: { protocol: 'source', port: 7777, name: 'Pavlov VR' },
+  postscriptum: { protocol: 'source', port: 10037, name: 'Post Scriptum' },
+  stationeers: { protocol: 'source', port: 27500, name: 'Stationeers' },
+  wreckfest: { protocol: 'source', port: 27015, name: 'Wreckfest' },
 
   // Minecraft
   minecraft: { protocol: 'minecraft', port: 25565, name: 'Minecraft: Java Edition' },
