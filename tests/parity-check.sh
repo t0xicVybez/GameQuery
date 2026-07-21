@@ -44,11 +44,14 @@ php_games=$(php -r '
     require "autoload.php";
     $g = GameQuery\Games::GAMES;
     ksort($g);
-    foreach ($g as $k => $v) { echo $k . "=" . $v["protocol"] . ":" . $v["port"] . "\n"; }
+    foreach ($g as $k => $v) {
+        echo $k . "=" . $v["protocol"] . ":" . $v["port"] . "/" . ($v["gamePort"] ?? "-") . "\n";
+    }
 ')
 ts_games=$(node --input-type=module -e '
     import { GAMES } from "./node/dist/Games.js";
-    for (const g of Object.keys(GAMES).sort()) console.log(`${g}=${GAMES[g].protocol}:${GAMES[g].port}`);
+    for (const g of Object.keys(GAMES).sort())
+        console.log(`${g}=${GAMES[g].protocol}:${GAMES[g].port}/${GAMES[g].gamePort ?? "-"}`);
 ')
 if [ "$php_games" != "$ts_games" ]; then
     echo "PARITY FAIL: game database differs between PHP and Node"

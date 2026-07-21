@@ -692,6 +692,23 @@ echo "\nGame database lookup + addGame resolution\n";
 check('game info resolves rust -> source:28015', Games::info('rust') === ['protocol' => 'source', 'port' => 28015, 'name' => 'Rust']);
 check('game info is case-insensitive', Games::info('RUST') !== null);
 check('game info returns null for an unknown game', Games::info('nope') === null);
+// gamePort is only set where the join port differs from the query port.
+check('game info omits gamePort when it matches the query port', !isset(Games::info('rust')['gamePort']));
+check(
+    'game info exposes gamePort for Killing Floor 2 (query 27015, join 7777)',
+    Games::info('killingfloor2')['port'] === 27015 && Games::info('killingfloor2')['gamePort'] === 7777
+);
+check(
+    'game info exposes gamePort for Terraria (REST 7878, join 7777)',
+    Games::info('terraria')['port'] === 7878 && Games::info('terraria')['gamePort'] === 7777
+);
+$gamePortSane = true;
+foreach (Games::GAMES as $g) {
+    if (isset($g['gamePort']) && $g['gamePort'] === $g['port']) {
+        $gamePortSane = false;
+    }
+}
+check('a gamePort never equals its query port', $gamePortSane);
 $gqGame = (new GameQuery())->addGame('minecraft', 'mc.example.com');
 $gameSrv = $gqGame->getServers()[0];
 check('addGame resolves protocol + default port', $gameSrv->protocol === 'minecraft' && $gameSrv->port === 25565);

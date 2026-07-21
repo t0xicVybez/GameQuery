@@ -28,7 +28,7 @@ import { MinecraftLegacy } from '../protocol/MinecraftLegacy.js';
 import { MinecraftQuery } from '../protocol/MinecraftQuery.js';
 import { Satisfactory } from '../protocol/Satisfactory.js';
 import { SteamMaster } from '../SteamMaster.js';
-import { gameInfo } from '../Games.js';
+import { GAMES, gameInfo } from '../Games.js';
 import { GameQuery } from '../GameQuery.js';
 import { Result } from '../Result.js';
 import { ErrorCode } from '../ErrorCode.js';
@@ -760,6 +760,20 @@ check(
 );
 check('gameInfo is case-insensitive', gameInfo('RUST') !== null);
 check('gameInfo returns null for an unknown game', gameInfo('nope') === null);
+// gamePort is only set where the join port differs from the query port.
+check('gameInfo omits gamePort when it matches the query port', gameInfo('rust')?.gamePort === undefined);
+check(
+  'gameInfo exposes gamePort for Killing Floor 2 (query 27015, join 7777)',
+  gameInfo('killingfloor2')?.port === 27015 && gameInfo('killingfloor2')?.gamePort === 7777,
+);
+check(
+  'gameInfo exposes gamePort for Terraria (REST 7878, join 7777)',
+  gameInfo('terraria')?.port === 7878 && gameInfo('terraria')?.gamePort === 7777,
+);
+check(
+  'a gamePort never equals its query port',
+  Object.values(GAMES).every((g) => g.gamePort === undefined || g.gamePort !== g.port),
+);
 const gameSrv = new GameQuery().addGame('minecraft', 'mc.example.com').getServers()[0];
 check(
   'addGame resolves protocol + default port',

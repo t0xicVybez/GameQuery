@@ -5,6 +5,21 @@ All notable changes to GameQuery are documented here. The format follows
 [Semantic Versioning](https://semver.org/). The PHP (`t0xicvybez/gamequery`) and
 Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
 
+## [0.5.3] - 2026-07-21
+
+### Added
+- **`gamePort` in the game database** — the port players *join* on, for the games
+  whose join port differs from the port GameQuery queries. Killing Floor 2, for
+  example, answers A2S on 27015 but is joined on 7777; Terraria's TShock REST
+  API is on 7878 while the game is on 7777. Set on 14 games (Valheim, DayZ,
+  Conan Exiles, Killing Floor 2, Insurgency: Sandstorm, Squad, Post Scriptum,
+  Arma 3, Palworld, Terraria, Assetto Corsa, UT2004, MTA:SA, TeamSpeak 3) and
+  omitted wherever the two ports are the same.
+
+  It is **advisory only and never queried** — it exists so a caller can show a
+  correct "connect on `host:port`" address without pointing the query at it. The
+  parity check now compares it across both ports.
+
 ## [0.5.2] - 2026-07-21
 
 ### Added
@@ -153,6 +168,7 @@ Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
   id Tech families, Mumble, TeamSpeak 3, Frostbite, Assetto Corsa, Terraria,
   SA-MP/open.mp), concurrent multi-server polling, and a JSON CLI.
 
+[0.5.3]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.4.0...v0.5.0

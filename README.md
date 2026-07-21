@@ -110,7 +110,11 @@ const one = await GameQuery.queryOne('source', '127.0.0.1:27015');
 - **`queryOne()`** — query a single server without the addServer()/process() ceremony.
 - **`queryGame()` / `addGame()`** — query by game id (`'rust'`, `'cs2'`,
   `'minecraft'`) instead of protocol; resolves the protocol + default port from a
-  44-game database.
+  53-game database (`gameInfo()` / `GAMES` expose it directly).
+- **`gameInfo().gamePort`** — the port players *join* on, for games where it
+  differs from the port that answers queries (Killing Floor 2 is queried on
+  27015 but joined on 7777). Advisory only and never queried — use it to show a
+  correct connect address; it is omitted when both ports are the same.
 - **`processStream()`** — an async iterator (PHP: a `Generator`) that yields each
   `Result` the moment its server answers, instead of waiting for the slowest.
 - **`listServers()`** — discover Source/A2S servers via the Steam master server
