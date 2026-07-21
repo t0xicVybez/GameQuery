@@ -26,8 +26,8 @@ No code changes; 0.5.4 and 0.5.5 are functionally identical.
   the same licence. The intent is that this stays open and can't be repackaged
   as a closed, paid product.
 - **All releases before 0.5.4 have been withdrawn.** 0.1.0–0.5.3 were unpublished
-  from npm and their git tags and GitHub releases deleted, so 0.5.4 is the only
-  obtainable version. Those versions were MIT, and that grant is perpetual for
+  from npm and their git tags and GitHub releases deleted, so every obtainable
+  release is AGPL. Those versions were MIT, and that grant is perpetual for
   anyone who already holds a copy — withdrawing them stops new downloads, it does
   not revoke rights already given. The entries below are kept as a record of what
   changed; the versions themselves are no longer downloadable.
