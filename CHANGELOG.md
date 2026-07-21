@@ -5,6 +5,18 @@ All notable changes to GameQuery are documented here. The format follows
 [Semantic Versioning](https://semver.org/). The PHP (`t0xicvybez/gamequery`) and
 Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
 
+## [0.5.5] - 2026-07-21
+
+### Documentation
+- Corrected the licence note that shipped in 0.5.4. It stated the pre-0.5.4 MIT
+  releases "remain available under those terms"; they have since been withdrawn
+  from npm, Packagist and GitHub, so only the AGPL releases are obtainable. The
+  MIT grant itself is perpetual for anyone already holding a copy — withdrawal
+  stops distribution, it does not revoke rights already given.
+- Dropped the changelog's compare links for deleted tags, which resolved to 404.
+
+No code changes; 0.5.4 and 0.5.5 are functionally identical.
+
 ## [0.5.4] - 2026-07-21
 
 ### Changed — licence
@@ -13,8 +25,12 @@ Node (`@t0xicvybez/gamequery`) ports share this changelog and version.
   **including one you run as a network service** — has to ship its source under
   the same licence. The intent is that this stays open and can't be repackaged
   as a closed, paid product.
-- **Versions up to and including 0.5.3 remain MIT** and are unaffected; the AGPL
-  applies from 0.5.4 onward. If you depend on the MIT terms, pin `<=0.5.3`.
+- **All releases before 0.5.4 have been withdrawn.** 0.1.0–0.5.3 were unpublished
+  from npm and their git tags and GitHub releases deleted, so 0.5.4 is the only
+  obtainable version. Those versions were MIT, and that grant is perpetual for
+  anyone who already holds a copy — withdrawing them stops new downloads, it does
+  not revoke rights already given. The entries below are kept as a record of what
+  changed; the versions themselves are no longer downloadable.
 
 ### Documentation
 - **The npm README was materially out of date** and is rewritten: it listed 21 of
@@ -195,13 +211,5 @@ No code changes; 0.5.3 and 0.5.4 are functionally identical.
   id Tech families, Mumble, TeamSpeak 3, Frostbite, Assetto Corsa, Terraria,
   SA-MP/open.mp), concurrent multi-server polling, and a JSON CLI.
 
-[0.5.4]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.3...v0.5.4
-[0.5.3]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.2...v0.5.3
-[0.5.2]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.1...v0.5.2
-[0.5.1]: https://github.com/t0xicVybez/GameQuery/compare/v0.5.0...v0.5.1
-[0.5.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/t0xicVybez/GameQuery/compare/v0.1.1...v0.2.0
-[0.1.1]: https://github.com/t0xicVybez/GameQuery/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/t0xicVybez/GameQuery/releases/tag/v0.1.0
+[0.5.5]: https://github.com/t0xicVybez/GameQuery/releases/tag/v0.5.5
+[0.5.4]: https://github.com/t0xicVybez/GameQuery/releases/tag/v0.5.4

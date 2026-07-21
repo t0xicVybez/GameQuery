@@ -159,8 +159,8 @@ Use it, modify it and contribute freely; if you distribute a modified version �
 **including running one as a network service** — you must make your source
 available under the same licence.
 
-Releases up to and including **0.5.3 were MIT** and remain available under those
-terms; the AGPL applies from **0.5.4** onward.
+**Every published release is AGPL** — the pre-0.5.4 releases, which were MIT, have
+been withdrawn, so the AGPL is the only licence GameQuery is distributed under.
 
 Issues and source:
 [github.com/t0xicVybez/GameQuery](https://github.com/t0xicVybez/GameQuery).

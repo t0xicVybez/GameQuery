@@ -292,5 +292,6 @@ running one as a network service** — you have to make your source available
 under the same licence. That's what keeps this project open rather than
 something somebody repackages and sells closed.
 
-Releases up to and including **0.5.3 were MIT** and remain available under those
-terms; the AGPL applies from **0.5.4** onward.
+**Every published release is AGPL.** The pre-0.5.4 releases, which were MIT, have
+been withdrawn from npm, Packagist and GitHub, so the AGPL is the only licence
+GameQuery is distributed under.
